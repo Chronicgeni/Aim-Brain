@@ -1,0 +1,69 @@
+# Coach Engine Update — Engine-First Coaching
+
+## Core principle
+
+The Coach Engine does not guess. It explains decisions made by the Aim Brain Engine.
+
+The first version should be rule-based and transparent. AI-generated prose can be added later only as a wording layer.
+
+## Every coach card needs three things
+
+1. **Recommendation** — what to do.
+2. **Evidence** — why the engine recommends it.
+3. **Success condition** — how the user knows the intervention worked.
+
+Example:
+
+```text
+Recommendation: Train Reactive Tracking today.
+Evidence: It is your biggest blocker for Master because last-10 average is behind target, confidence is low, and recent volume is below target.
+Success condition: Raise last-10 average or confidence over the next 2–3 sessions, not just one lucky PB.
+```
+
+## Coach output levels
+
+### Lite
+
+- today’s focus
+- one reason
+- one next action
+
+### Standard
+
+- today’s focus
+- trend
+- weak-link explanation
+- recommended block structure
+
+### Analyst
+
+- detailed category breakdown
+- confidence/consistency details
+- plateau or decay notes
+- scenario-level evidence
+
+## First coach templates
+
+### Weakness focus
+
+```text
+Your biggest blocker is {category}. The main reason is {primaryReason}. Today should be a weakness-focused session: {scenarioList}. Success means {successCondition}.
+```
+
+### Consistency day
+
+```text
+Your PB is ahead of your current average in {category}. That means the skill exists, but it is not stable yet. Today should focus on consistency, not forcing another PB.
+```
+
+### Maintenance day
+
+```text
+{category} is currently strong enough relative to your goal. Keep it warm with a short maintenance block, but do not let it steal time from {weakCategory}.
+```
+
+### Not enough data
+
+```text
+Aim Brain needs more accepted runs before making a strong recommendation. Add/import more runs for {categoryOrScenario} so the engine can separate real trends from noise.
+```
