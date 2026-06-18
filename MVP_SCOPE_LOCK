@@ -1,0 +1,218 @@
+# MVP Scope Lock
+
+This file locks the first real Aim Brain build.
+
+The MVP must prove the real product foundation:
+
+```text
+local score import
+↓
+raw run database
+↓
+scenario matching
+↓
+benchmark definition/source system
+↓
+deterministic analysis engine
+↓
+coach-first UI summary
+```
+
+Do not build a beautiful fake shell before the data pipeline works.
+
+---
+
+## MVP Goal
+
+Build a local-first desktop app that can:
+
+1. import real or sample aim-training score data,
+2. save raw runs safely,
+3. match runs to scenarios,
+4. analyze progress without hardcoding Voltaic,
+5. show a useful coach-style home screen.
+
+The MVP does not need every benchmark, every chart, or every coach feature.
+
+It needs the foundation to be correct.
+
+---
+
+## MVP Included
+
+### App Shell
+
+- Tauri desktop shell
+- React + TypeScript frontend
+- local SQLite database
+- Windows-first development
+- portable architecture for macOS/Linux later
+
+### Data Foundation
+
+- raw run table
+- import batch table
+- imported file hash table
+- staging/review queue for uncertain imports
+- scenario match override table
+- settings table
+- benchmark definition/source metadata table
+
+### Importer Foundation
+
+- Aimlabs importer interface
+- KovaaK's importer interface
+- sample/mock importer for tests
+- file hash duplicate detection
+- never modify trainer files
+- import transactions
+- clear import reports
+
+If real Aimlabs/KovaaK's sample files are missing, build the importer with fixtures and interfaces, but do not pretend it is production-complete.
+
+### Aim Brain Engine Foundation
+
+- raw score stats
+- PB
+- latest score
+- last-5 and last-10 average
+- all-time average
+- trend direction
+- consistency/volatility
+- progress-only fallback
+- scenario matching output
+- universal category aggregation
+- simple weakness detection
+- simple recommendation output
+
+### Benchmark Source System
+
+- normalized benchmark definition types
+- source adapter interface
+- built-in definition loader
+- local JSON source adapter
+- validator
+- source metadata
+- progress-only fallback
+- sample Voltaic-like and Viscose-like test definitions
+
+Do not scrape hidden/private APIs.
+
+Do not depend on EVXL or Voltaic private backend data.
+
+### UI MVP
+
+- Home
+- Import
+- Review Queue
+- Runs/History
+- Benchmark Sources
+- Settings
+
+The Home screen must be coach-first:
+
+```text
+What happened?
+What matters?
+What should I train next?
+What needs fixing?
+```
+
+---
+
+## MVP Excluded
+
+Do not build these in MVP:
+
+- OCR
+- AI-generated coaching decisions
+- cloud sync
+- account system
+- online benchmark catalog
+- automatic Google Sheet sync
+- automatic GitHub update checker
+- custom benchmark builder UI
+- full benchmark source marketplace
+- full radar chart system
+- every benchmark
+- advanced animation-heavy UI
+- setup comparison analytics
+- score-board scraping
+- automatic gameplay scenario installation
+
+These can come later.
+
+---
+
+## First Supported Data Modes
+
+The app should have three data modes during development:
+
+### 1. Fixture Mode
+
+Uses fake/test runs bundled in the repo.
+
+Purpose:
+- test engine
+- test UI
+- allow development before real files are available
+
+### 2. Manual Test Import Mode
+
+Allows selecting a local sample JSON/CSV file.
+
+Purpose:
+- test parsers
+- test import pipeline
+
+### 3. Real Local Import Mode
+
+Reads Aimlabs/KovaaK's local/export data.
+
+Purpose:
+- real user value
+
+Real local import becomes production only after we inspect real sample files.
+
+---
+
+## First Useful App Experience
+
+The first useful version should let a user do this:
+
+```text
+Open Aim Brain
+↓
+Choose data source
+↓
+Import sample or real score file
+↓
+See imported runs
+↓
+Review unmatched scenarios
+↓
+See basic profile summary
+↓
+See one clear recommendation
+```
+
+If the app can do that reliably, the foundation is alive.
+
+---
+
+## Definition of MVP Done
+
+MVP is done when:
+
+- app launches
+- local SQLite database initializes
+- migrations apply
+- sample runs import safely
+- duplicate imports are blocked
+- uncertain imports go to review queue
+- scenario matching works with aliases/overrides
+- benchmark definition validator works
+- missing thresholds use progress-only mode
+- same engine analyzes at least two sample benchmark definitions
+- Home shows coach-first summary
+- tests cover the core pipeline
