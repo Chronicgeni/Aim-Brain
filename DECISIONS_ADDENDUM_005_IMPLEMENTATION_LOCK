@@ -1,0 +1,71 @@
+# Decisions Addendum 005 — Implementation Lock
+
+## Decision 027: MVP Scope Is Locked
+
+Decision:
+- The first build must prove the import → database → engine → coach summary pipeline.
+- UI polish is secondary until the pipeline works.
+
+Status:
+- locked
+
+---
+
+## Decision 028: Tech Stack Is Locked
+
+Decision:
+- Use Tauri + Rust backend + React + TypeScript + Vite + SQLite.
+
+Reason:
+- Aim Brain is local-first.
+- It needs native file access and a reliable local database.
+- It also needs a clean app UI and testable logic.
+
+Status:
+- locked
+
+---
+
+## Decision 029: Rust Owns File System And Database Safety
+
+Decision:
+- Rust handles file access, hashing, SQLite, migrations, backups, and import transactions.
+- React/TypeScript handles UI and engine logic unless later moved.
+
+Status:
+- locked
+
+---
+
+## Decision 030: Engine Must Be Pure And Testable
+
+Decision:
+- The first Aim Brain Engine lives in `src/engine/`.
+- It exports from `src/engine/index.ts`.
+- It should not depend on React components or direct database calls.
+
+Status:
+- locked
+
+---
+
+## Decision 031: Do Not Overbuild MVP UI
+
+Decision:
+- MVP screens are Home, Import, Review Queue, Runs, Benchmark Sources, Settings.
+- Home is coach-first.
+- Advanced charts and customization come later.
+
+Status:
+- locked
+
+---
+
+## Decision 032: Real File Parsers Require Real Samples
+
+Decision:
+- Codex may build parser interfaces and fixture importers now.
+- Codex must not pretend Aimlabs/KovaaK's production parser is finished without real sample files.
+
+Status:
+- locked
