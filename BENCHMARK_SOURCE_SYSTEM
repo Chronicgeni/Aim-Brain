@@ -1,0 +1,367 @@
+# Benchmark Source System
+
+This replaces the older idea that "benchmark packs" are the main thing users need to download.
+
+The better design is:
+
+```text
+External benchmark sources
+↓
+Source adapters
+↓
+Normalized benchmark definition
+↓
+Validation
+↓
+Local install/cache
+↓
+Aim Brain Engine
+```
+
+Aim Brain should not create an isolated benchmark ecosystem where everything must be an Aim Brain-specific pack first.
+
+Aim Brain should understand benchmark data from the places people already use.
+
+---
+
+## Correct Mental Model
+
+There are three separate layers.
+
+### 1. Playable Benchmark Scenarios
+
+These are downloaded/subscribed inside the trainer.
+
+Examples:
+- Aimlabs tasks/playlists
+- KovaaK's scenarios/playlists/benchmarks
+- Aimbeast scenarios if supported later
+
+Aim Brain does not need to install playable scenarios in MVP.
+
+### 2. User Score Data
+
+This is what the user actually scored.
+
+Sources:
+- Aimlabs local data / Task Data / JSON export
+- KovaaK's local stats files / CSV
+- future public profile imports if allowed
+
+This answers:
+
+```text
+What did the user play?
+What score did they get?
+When did they play?
+```
+
+### 3. Benchmark Definition Data
+
+This explains what the score means.
+
+Sources:
+- official benchmark sheets/pages
+- public Google Sheets
+- GitHub raw JSON/CSV
+- community CSV/JSON files
+- app-bundled curated data
+- user-created custom definitions
+
+This answers:
+
+```text
+What scenarios belong to the benchmark?
+What ranks exist?
+What thresholds exist?
+What category is each scenario?
+What aliases should match?
+What version/source is this data from?
+```
+
+---
+
+## Rename the Concept
+
+Avoid treating "benchmark pack" as the only product concept.
+
+Use clearer terms:
+
+```text
+External Source = where benchmark data comes from
+Source Adapter = code that reads/converts that source
+Normalized Benchmark Definition = internal validated shape used by the engine
+Installed Benchmark = locally stored validated benchmark definition
+```
+
+The old term "BenchmarkPack" can still exist internally as a TypeScript type if useful, but it should mean:
+
+```text
+validated normalized benchmark definition
+```
+
+It should not mean:
+
+```text
+the only way benchmarks can exist
+```
+
+---
+
+## Architecture
+
+```text
+Official/community source
+  Google Sheet / CSV / GitHub JSON / local file / built-in data
+↓
+Benchmark Source Adapter
+↓
+Normalized Benchmark Definition
+↓
+Validator
+↓
+Preview
+↓
+Install/cache locally
+↓
+Benchmark Registry
+↓
+Aim Brain Engine
+↓
+UI
+```
+
+The engine should only consume validated normalized definitions.
+
+The source adapter system should handle the messy outside world.
+
+---
+
+## Supported Source Types
+
+MVP should support:
+
+```text
+1. Built-in curated definitions
+2. Local JSON definition
+3. Local CSV definition
+```
+
+MVP+ should support:
+
+```text
+4. GitHub raw JSON/CSV
+5. Public Google Sheet CSV export
+```
+
+Later:
+
+```text
+6. .aimbrainpack package
+7. Custom benchmark builder
+8. Online trusted source catalog
+9. Update checker
+```
+
+---
+
+## Built-In Definitions
+
+Aim Brain can ship with curated benchmark definitions for common benchmarks.
+
+Examples:
+- Voltaic
+- Viscose
+
+These are included so normal users do not have to hunt for definition files.
+
+But even built-in definitions should be stored in the same normalized structure the adapters produce.
+
+---
+
+## External Source Adapters
+
+Source adapters convert outside data into the internal normalized definition.
+
+Examples:
+
+```text
+local-json-adapter
+local-csv-adapter
+google-sheet-csv-adapter
+github-raw-json-adapter
+github-raw-csv-adapter
+built-in-definition-adapter
+```
+
+Each adapter should:
+- read source
+- parse source
+- map fields
+- normalize data
+- attach source metadata
+- return a draft definition
+- pass it to validation
+
+---
+
+## Source Metadata
+
+Every installed benchmark definition must record where it came from.
+
+Required metadata:
+
+```json
+{
+  "sourceType": "built-in | local-json | local-csv | google-sheet-csv | github-raw-json | github-raw-csv | custom-created",
+  "sourceName": "Voltaic Official Sheet",
+  "sourceUrl": "https://...",
+  "importedAt": "2026-06-18T12:00:00Z",
+  "lastCheckedAt": null,
+  "isOfficialData": true,
+  "license": "unknown",
+  "notes": ""
+}
+```
+
+The app must be honest about whether data is official, community-made, user-created, or unknown.
+
+---
+
+## Normalized Benchmark Definition
+
+The internal definition should include:
+
+```text
+id
+name
+version
+source metadata
+supported platforms
+scenarios
+aliases
+native categories
+universal category mapping
+ranks if available
+thresholds if available
+scoring direction
+validation status
+```
+
+This is the format the Aim Brain Engine understands.
+
+---
+
+## Progress-Only Is Required
+
+Some sources will not have thresholds.
+
+That is okay.
+
+If thresholds are missing:
+
+```text
+Use progress-only mode.
+Do not invent ranks.
+```
+
+Progress-only still tracks:
+- PB
+- latest score
+- last-10 average
+- trend
+- consistency
+- volume
+- coach notes
+
+It does not show fake rank conversion.
+
+---
+
+## User Flow: Built-In Benchmark
+
+```text
+1. User installs Aim Brain.
+2. Aim Brain includes curated Voltaic/Viscose definitions.
+3. User downloads playable benchmark scenarios in Aimlabs/KovaaK's.
+4. User plays.
+5. Aim Brain imports score data from Aimlabs/KovaaK's.
+6. Aim Brain matches scores to built-in benchmark definitions.
+7. Aim Brain shows progress/coach analysis.
+```
+
+---
+
+## User Flow: External Benchmark Source
+
+```text
+1. User finds public benchmark sheet/GitHub JSON/local CSV.
+2. User opens Settings → Benchmark Sources.
+3. User selects source type.
+4. Aim Brain imports source.
+5. Source adapter converts it into normalized definition.
+6. Validator checks it.
+7. App shows preview, warnings, and errors.
+8. User confirms install.
+9. Definition appears as an installed benchmark.
+10. Aim Brain can analyze runs against it.
+```
+
+---
+
+## Preview Before Install
+
+Before installing any external source, show:
+
+```text
+Benchmark name
+Version
+Source type
+Source URL/path
+Official/community/custom/unknown
+Scenario count
+Rank count
+Threshold count
+Supported platforms
+Universal category coverage
+Warnings
+Errors
+```
+
+Errors block install.
+
+Warnings allow install after confirmation.
+
+---
+
+## What Not To Do
+
+Do not:
+- build Aim Brain as Voltaic-only
+- make every benchmark require custom engine code
+- rely on hidden EVXL or Voltaic private APIs
+- scrape private sources
+- bypass logins
+- silently auto-update benchmark definitions
+- pretend unofficial data is official
+- invent thresholds
+- make the UI directly depend on source-specific details
+
+---
+
+## Correct Codex Direction
+
+Codex should build:
+
+```text
+BenchmarkSourceAdapter
+BenchmarkDefinitionDraft
+NormalizedBenchmarkDefinition
+validateBenchmarkDefinition
+BenchmarkDefinitionRegistry
+installBenchmarkDefinitionFromSource
+progressOnlyFallback
+source metadata storage
+```
+
+The older "BenchmarkPack" docs should be treated as an earlier concept. The useful part is the normalized internal structure, not the idea that users only download Aim Brain-specific packs.
