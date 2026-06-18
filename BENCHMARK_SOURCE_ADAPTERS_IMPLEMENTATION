@@ -1,0 +1,373 @@
+# Deprecated / Superseded Notice
+
+This older benchmark-pack document is superseded by the source-first benchmark system.
+
+Read these instead:
+
+- `docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/benchmark_sources/BENCHMARK_SOURCE_IMPLEMENTATION_FLOW.md`
+- `docs/benchmark_sources/CODEX_TASKS_BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/DECISIONS_ADDENDUM_004_BENCHMARK_SOURCE_SYSTEM.md`
+
+The useful idea from this file is that the engine needs a validated internal benchmark definition. The flawed idea is treating Aim Brain-specific packs as the main way benchmarks are obtained.
+
+---
+
+# Benchmark Source Adapters Implementation
+
+This document defines how Aim Brain converts outside benchmark sources into internal Benchmark Packs.
+
+---
+
+## Goal
+
+Aim Brain should support benchmark data from normal community/dev sources without making every source a special case in the engine.
+
+The engine only accepts:
+
+```text
+Validated BenchmarkPack
+```
+
+Source adapters convert external data into that format.
+
+---
+
+## Adapter Pipeline
+
+```text
+Source input
+↓
+Read source
+↓
+Parse source format
+↓
+Map fields
+↓
+Normalize scenario/rank/category data
+↓
+Create BenchmarkPack draft
+↓
+Validate BenchmarkPack
+↓
+Show preview
+↓
+Install or reject
+```
+
+---
+
+## Adapter Interface
+
+Create:
+
+```text
+src/engine/benchmarks/sources/BenchmarkSourceAdapter.ts
+```
+
+Suggested TypeScript types:
+
+```ts
+export type BenchmarkSourceType =
+  | "built-in"
+  | "local-json"
+  | "local-csv"
+  | "google-sheet-csv"
+  | "github-raw-json"
+  | "github-raw-csv"
+  | "aimbrainpack"
+  | "custom-created";
+
+export type BenchmarkSourceInput = {
+  type: BenchmarkSourceType;
+  path?: string;
+  url?: string;
+  mappingPreset?: string;
+};
+
+export type BenchmarkSourceImportResult =
+  | {
+      ok: true;
+      pack: BenchmarkPack;
+      warnings: string[];
+      sourceMetadata: BenchmarkSourceMetadata;
+    }
+  | {
+      ok: false;
+      errors: BenchmarkSourceImportError[];
+      warnings: string[];
+    };
+
+export type BenchmarkSourceAdapter = {
+  id: string;
+  name: string;
+  supportedTypes: BenchmarkSourceType[];
+
+  canHandle(input: BenchmarkSourceInput): boolean;
+
+  importSource(input: BenchmarkSourceInput): Promise<BenchmarkSourceImportResult>;
+};
+```
+
+---
+
+## Built-In Pack Adapter
+
+Purpose:
+- load packs that ship with Aim Brain
+
+Input:
+- internal bundled JSON
+
+Output:
+- BenchmarkPack
+
+This should be the most reliable path.
+
+---
+
+## Local JSON Adapter
+
+Purpose:
+- import a pack that is already in Aim Brain BenchmarkPack JSON shape
+
+Flow:
+
+```text
+read pack.json
+parse JSON
+validate
+preview
+install
+```
+
+This is the easiest MVP import type.
+
+---
+
+## Local CSV Adapter
+
+Purpose:
+- convert spreadsheet-style benchmark definitions into BenchmarkPack format
+
+Problem:
+- not every benchmark sheet uses the same columns
+
+Solution:
+- use mapping presets
+- allow manual mapping later
+
+Example expected columns:
+
+```text
+benchmark_id
+benchmark_name
+version
+platform
+scenario_id
+scenario_name
+aliases
+native_category
+universal_category
+difficulty
+rank_id
+rank_name
+rank_order
+threshold_score
+scoring_direction
+```
+
+MVP can support one simple CSV shape first.
+
+---
+
+## Google Sheet CSV Adapter
+
+Purpose:
+- import public Google Sheets as CSV
+
+Flow:
+
+```text
+user provides public sheet CSV/export URL
+↓
+app downloads CSV
+↓
+CSV adapter parses it
+↓
+validate
+↓
+preview
+↓
+install
+```
+
+Rules:
+- public URLs only
+- no login-required sheets in MVP
+- no scraping private data
+- cache imported data
+- record source URL
+
+---
+
+## GitHub Raw Adapter
+
+Purpose:
+- import community-maintained JSON/CSV from GitHub raw URLs
+
+Flow:
+
+```text
+user provides raw URL
+↓
+app downloads file
+↓
+detect JSON or CSV
+↓
+parse using adapter
+↓
+validate
+↓
+preview
+↓
+install
+```
+
+Rules:
+- record repository/source URL
+- record imported time
+- do not auto-update silently
+- updates require preview/confirmation
+
+---
+
+## Mapping Presets
+
+Some sources will not match Aim Brain's internal shape.
+
+Use mapping presets.
+
+Example:
+
+```ts
+export type BenchmarkColumnMapping = {
+  scenarioName: string;
+  platform: string;
+  nativeCategory: string;
+  universalCategory?: string;
+  rankName: string;
+  rankOrder?: string;
+  thresholdScore: string;
+};
+```
+
+For known benchmark sheets, Aim Brain can ship presets.
+
+Examples:
+- `voltaic-sheet-v1`
+- `viscose-sheet-v1`
+- `generic-threshold-table-v1`
+
+Do not hardcode these mappings into the engine.
+
+Put them in source adapter presets.
+
+---
+
+## Preview Before Install
+
+All source imports should show a preview:
+
+```text
+Benchmark name
+Source type
+Source URL/path
+Version
+Scenario count
+Rank count
+Threshold count
+Supported platforms
+Universal category coverage
+Warnings
+Errors
+```
+
+Warnings might include:
+- some scenarios missing thresholds
+- unknown universal category
+- duplicate aliases fixed
+- unofficial source
+- source license unknown
+
+Errors block install.
+
+Warnings allow install after confirmation.
+
+---
+
+## Update Flow
+
+Later, packs can be updated from their original source.
+
+Flow:
+
+```text
+Check for update
+↓
+Download source again
+↓
+Parse
+↓
+Validate
+↓
+Compare with installed version
+↓
+Show changes
+↓
+User confirms update
+```
+
+Never silently replace benchmark rules without user visibility.
+
+---
+
+## Difference Between Scenario Download and Benchmark Source
+
+Important:
+
+```text
+Aimlabs/KovaaK's scenario download = playable task
+Benchmark source import = rules and thresholds for interpreting scores
+```
+
+The app may detect that a user played a scenario from a pack, but it should not assume the trainer contains the full benchmark threshold table.
+
+---
+
+## MVP Implementation
+
+Implement in this order:
+
+```text
+1. Local JSON adapter
+2. Built-in pack loader
+3. Pack validator
+4. Preview/install flow
+5. Local CSV adapter with one generic mapping
+6. GitHub raw JSON adapter
+7. Public Google Sheet CSV adapter later
+```
+
+---
+
+## Success Criteria
+
+This system works when:
+
+- Aim Brain can ship built-in Voltaic/Viscose packs.
+- A user can import a local `pack.json`.
+- A user can later import a CSV/Google Sheet/GitHub source.
+- The source adapter converts data into BenchmarkPack.
+- The validator catches bad data.
+- The engine only sees validated BenchmarkPack objects.
