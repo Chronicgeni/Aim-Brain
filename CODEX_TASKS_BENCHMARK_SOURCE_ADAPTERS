@@ -1,0 +1,174 @@
+# Codex Tasks: Benchmark Source Adapters
+
+These tasks make benchmark packs come from real-world sources, not only Aim Brain-specific files.
+
+---
+
+## Task BSA-001: Add BenchmarkSourceAdapter Types
+
+Create:
+
+```text
+src/engine/benchmarks/sources/BenchmarkSourceAdapter.ts
+```
+
+Include:
+- BenchmarkSourceType
+- BenchmarkSourceInput
+- BenchmarkSourceMetadata
+- BenchmarkSourceImportResult
+- BenchmarkSourceImportError
+- BenchmarkSourceAdapter
+
+Acceptance:
+- Types compile.
+- No UI dependency.
+- No benchmark-specific logic in shared source types.
+
+---
+
+## Task BSA-002: Add Local JSON Source Adapter
+
+Create:
+
+```text
+src/engine/benchmarks/sources/localJsonAdapter.ts
+```
+
+Acceptance:
+- reads local pack.json
+- parses JSON
+- validates BenchmarkPack
+- returns clear errors for invalid JSON
+- returns source metadata
+
+---
+
+## Task BSA-003: Add Built-In Pack Source Adapter
+
+Create:
+
+```text
+src/engine/benchmarks/sources/builtInPackAdapter.ts
+```
+
+Acceptance:
+- loads bundled pack JSON files
+- validates them on startup/test
+- failed built-in pack validation fails tests
+
+---
+
+## Task BSA-004: Add Generic CSV Adapter
+
+Create:
+
+```text
+src/engine/benchmarks/sources/localCsvAdapter.ts
+```
+
+Acceptance:
+- imports a simple known CSV shape
+- maps rows into scenarios/ranks/thresholds
+- supports progress-only scenarios
+- returns warnings for missing optional data
+
+---
+
+## Task BSA-005: Add Source Import Preview
+
+Create a UI-neutral preview model:
+
+```text
+src/engine/benchmarks/sources/createBenchmarkImportPreview.ts
+```
+
+Preview should include:
+- benchmark name
+- source type
+- version
+- scenario count
+- rank count
+- threshold count
+- supported platforms
+- warnings
+- errors
+- official/community/custom status
+
+---
+
+## Task BSA-006: Add Source Install Flow
+
+Connect source adapters to existing pack installer.
+
+Flow:
+
+```text
+source input
+↓
+adapter import
+↓
+validation
+↓
+preview
+↓
+confirm install
+↓
+copy/store pack
+↓
+registry update
+```
+
+Acceptance:
+- install local JSON pack
+- invalid pack blocked
+- warnings shown but can be confirmed
+- source metadata stored
+
+---
+
+## Task BSA-007: Add GitHub Raw JSON Adapter
+
+Later/MVP+.
+
+Acceptance:
+- accepts raw GitHub JSON URL
+- downloads file
+- parses through Local JSON logic
+- records URL metadata
+- no silent auto-update
+
+---
+
+## Task BSA-008: Add Public Google Sheet CSV Adapter
+
+Later.
+
+Acceptance:
+- accepts public CSV export URL
+- downloads CSV
+- parses through CSV adapter
+- no private sheet scraping
+- records source metadata
+
+---
+
+## Task BSA-009: Add Tests
+
+Tests:
+- local JSON source imports valid pack
+- local JSON source rejects invalid pack
+- CSV source maps rows correctly
+- missing thresholds become progress-only
+- source metadata is stored
+- engine analyzes imported pack like built-in pack
+
+---
+
+## First Codex Task
+
+Start with BSA-001 and BSA-002 only.
+
+Do not build online sync first.
+Do not scrape EVXL or Voltaic.
+Do not require Google login.
