@@ -1,0 +1,249 @@
+# Codex Execution Order
+
+This is the order Codex should follow.
+
+Do not let Codex jump straight into UI polish.
+
+---
+
+## Stage 0: Read And Confirm
+
+Codex must first read:
+
+```text
+AGENTS.md
+docs/CODEX_START_HERE.md
+docs/implementation/MVP_SCOPE_LOCK.md
+docs/implementation/TECH_STACK_LOCK.md
+docs/implementation/CODEX_EXECUTION_ORDER.md
+docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md
+```
+
+Then Codex should summarize:
+- product identity
+- non-negotiable rules
+- selected tech stack
+- MVP scope
+- first implementation task
+
+No code yet.
+
+---
+
+## Stage 1: Project Scaffold
+
+Create the app skeleton:
+
+```text
+Tauri
+React
+TypeScript
+Vite
+SQLite setup
+basic folder structure
+```
+
+Acceptance:
+- app runs
+- frontend loads
+- Rust backend command works
+- test command works
+
+---
+
+## Stage 2: Database Foundation
+
+Add migrations:
+
+```text
+app_settings
+import_sources
+import_batches
+imported_files
+raw_runs
+import_review_items
+scenario_match_overrides
+benchmark_definition_settings
+benchmark_definition_cache
+```
+
+Acceptance:
+- migrations apply
+- tests verify DB opens
+- no UI needed yet
+
+---
+
+## Stage 3: Core Types
+
+Add shared types:
+
+```text
+ScoreRun
+ImportBatch
+ImportReport
+ReviewItem
+NormalizedBenchmarkDefinition
+ScenarioMatchResult
+AnalysisResult
+CoachSummary
+```
+
+Acceptance:
+- no Voltaic-only naming
+- types compile
+- tests import types
+
+---
+
+## Stage 4: Benchmark Source System
+
+Implement:
+
+```text
+NormalizedBenchmarkDefinition
+BenchmarkSourceAdapter
+validateBenchmarkDefinition
+built-in sample definitions
+local JSON adapter
+progress-only fallback
+```
+
+Acceptance:
+- sample Voltaic-like and Viscose-like definitions validate
+- missing thresholds use progress-only
+- invalid definition gives clear errors
+
+---
+
+## Stage 5: Engine Core
+
+Implement pure functions:
+
+```text
+scoreStats
+trendAnalysis
+consistency
+scenarioMatching
+rankProgress
+progressOnly
+weaknessDetection
+trainingRecommendations
+coachSummary
+```
+
+Acceptance:
+- tested with fixtures
+- no React dependency
+- no database dependency
+- same engine works with two sample definitions
+
+---
+
+## Stage 6: Import Pipeline Skeleton
+
+Implement:
+
+```text
+import source registration
+file hash duplicate detection
+import batch creation
+sample fixture importer
+review queue creation
+raw run insertion
+```
+
+Acceptance:
+- sample import creates raw runs
+- duplicate import is skipped
+- unknown scenario goes to review
+
+---
+
+## Stage 7: Real Importer Research Hooks
+
+Create importer interfaces for:
+
+```text
+Aimlabs
+KovaaK's
+```
+
+But do not fake complete support.
+
+If real samples are missing:
+- create TODO clearly
+- use fixtures
+- expose where real parsers will plug in
+
+Acceptance:
+- parser interface exists
+- sample parser passes tests
+- no false claim of production support
+
+---
+
+## Stage 8: Minimal UI
+
+Build screens:
+
+```text
+Home
+Import
+Review Queue
+Runs
+Benchmark Sources
+Settings
+```
+
+Acceptance:
+- UI reads app data through service layer
+- Home displays engine output
+- UI does not calculate analysis internally
+- no Voltaic-specific UI conditions
+
+---
+
+## Stage 9: Review Queue Flow
+
+Add:
+
+```text
+manual scenario match
+save override
+apply override to future imports
+resolve review item
+```
+
+Acceptance:
+- manual correction persists
+- same scenario name matches next time
+
+---
+
+## Stage 10: Polish Only After Foundation
+
+Only after the above:
+
+```text
+better visuals
+animations
+charts
+radar
+customization
+advanced coach notes
+```
+
+Do not polish broken data.
+
+---
+
+## First Codex Prompt
+
+Use this:
+
+```text
+Read the Aim Brain docs. Do not write code yet. Summarize the product identity, MVP scope, tech stack, benchmark source system, data safety rules, and first implementation task. Then propose only Stage 1 and Stage 2 steps.
+```
+
+After Codex responds correctly, continue with scaffold.
