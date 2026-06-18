@@ -1,0 +1,195 @@
+# Deprecated / Superseded Notice
+
+This older benchmark-pack document is superseded by the source-first benchmark system.
+
+Read these instead:
+
+- `docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/benchmark_sources/BENCHMARK_SOURCE_IMPLEMENTATION_FLOW.md`
+- `docs/benchmark_sources/CODEX_TASKS_BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/DECISIONS_ADDENDUM_004_BENCHMARK_SOURCE_SYSTEM.md`
+
+The useful idea from this file is that the engine needs a validated internal benchmark definition. The flawed idea is treating Aim Brain-specific packs as the main way benchmarks are obtained.
+
+---
+
+# Smart Benchmark Pack Implementation Plan
+
+This plan keeps benchmark support powerful without making the project messy.
+
+---
+
+## Goal
+
+Make benchmark support easy to expand.
+
+Adding a new benchmark should usually require:
+
+```text
+pack.json + optional adapter + tests
+```
+
+Not engine rewrites.
+
+---
+
+## Phase 1: Shared Types
+
+Create:
+
+```text
+src/engine/benchmarks/shared/BenchmarkPack.ts
+```
+
+Include:
+- BenchmarkPack
+- BenchmarkRank
+- BenchmarkCategory
+- BenchmarkScenario
+- BenchmarkThreshold
+- BenchmarkAdapter
+- PlatformId
+- UniversalAimCategory
+- ScoringDirection
+
+---
+
+## Phase 2: Validation
+
+Create:
+
+```text
+src/engine/benchmarks/shared/validateBenchmarkPack.ts
+```
+
+It should validate:
+- unique scenario IDs
+- unique rank IDs
+- thresholds reference real scenarios
+- thresholds reference real ranks
+- universal categories are valid
+- platform IDs are valid
+- threshold scores are numbers
+
+The app should refuse invalid packs with a clear error.
+
+---
+
+## Phase 3: Registry
+
+Create:
+
+```text
+src/engine/benchmarks/shared/benchmarkRegistry.ts
+```
+
+The registry should allow:
+
+```ts
+getBenchmarkPack("voltaic")
+getBenchmarkPack("viscose")
+listBenchmarkPacks()
+```
+
+Later it can support custom/local packs.
+
+---
+
+## Phase 4: Progress-Only Engine
+
+Create:
+
+```text
+src/engine/benchmarks/shared/progressOnly.ts
+```
+
+This handles scenarios without thresholds.
+
+It returns:
+- PB
+- latest score
+- last-10 average
+- trend
+- consistency
+- note: "Progress only. No benchmark threshold data available."
+
+---
+
+## Phase 5: Rank Progress
+
+Create:
+
+```text
+src/engine/benchmarks/shared/rankProgress.ts
+```
+
+It should:
+- use thresholds when available
+- find current rank
+- find next rank
+- calculate progress to next rank
+- calculate normalized progress if rank normalization exists
+- never invent missing thresholds
+
+---
+
+## Phase 6: Sample Packs
+
+Create sample packs:
+
+```text
+src/engine/benchmarks/packs/voltaic/pack.json
+src/engine/benchmarks/packs/viscose/pack.json
+```
+
+They can start small.
+
+The point is to prove architecture, not complete all data immediately.
+
+---
+
+## Phase 7: Tests
+
+Tests must prove:
+- same engine analyzes Voltaic pack
+- same engine analyzes Viscose pack
+- missing thresholds return progress-only
+- invalid packs fail validation
+- UI-facing analysis object stays benchmark-agnostic
+
+---
+
+## Phase 8: UI Integration
+
+UI should only consume engine output.
+
+UI should not contain hardcoded Voltaic/Viscose logic.
+
+The UI can show:
+- active benchmark pack selector
+- Benchmark Mode
+- Universal Aim Mode
+- Comparison Mode
+
+But all analysis comes from the engine.
+
+---
+
+## Build Order for Codex
+
+Use this order:
+
+```text
+1. Shared BenchmarkPack types
+2. Pack validator
+3. Pack registry
+4. Progress-only fallback
+5. Rank progress function
+6. Sample Voltaic pack
+7. Sample Viscose pack
+8. Tests
+9. Engine integration
+10. UI selector later
+```
+
+Do not start by building UI.
