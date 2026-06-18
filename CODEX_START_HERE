@@ -1,0 +1,114 @@
+# Codex Start Here
+
+This is the final merged documentation pack for **Aim Brain**.
+
+## Read order
+
+1. `AGENTS.md`
+2. `README.md`
+3. `docs/AIM_BRAIN_MASTER_DOC.md`
+4. `docs/APP_IDENTITY_LOCK.md`
+5. `docs/UI_DIRECTION_EVXL_INSPIRED.md`
+6. `docs/AIMLABS_IMPORT_VOLTAIC_UPDATER_STYLE.md`
+7. `docs/architecture/AIM_BRAIN_ENGINE.md`
+8. `docs/features/COACH_ENGINE_UPDATE.md`
+9. `docs/roadmap/AIM_BRAIN_ENGINE_ROADMAP.md`
+10. `docs/codex/CODEX_TASKS_AIM_BRAIN_ENGINE.md`
+11. `docs/codex/CODEX_PROMPT_BUILD_AIM_BRAIN_ENGINE.md`
+12. `docs/CODEX_PROMPT_NEXT.md`
+
+## Current locked direction
+
+- The app is named **Aim Brain**.
+- Aim Brain is an automatic aim-training coach desktop app.
+- It is not a spreadsheet and not a manual score logger.
+- Raw runs are the source of truth.
+- The **Aim Brain Engine** is the product core.
+- UI displays engine output; UI should not own coaching logic.
+- Aimlabs import should be local/updater-style where possible, with JSON export fallback.
+- Never modify Aimlabs or KovaaK's source files.
+- UI should be inspired by EVXL-style aim benchmark trackers in broad concept, but cleaner, more coherent, and more user-friendly.
+- Home must be coach-first, not table-first.
+- First implementation priority: importer/data/engine foundation before UI polish.
+
+## First Codex instruction
+
+Do not write code immediately.
+
+First summarize:
+- what this project is
+- what it is not
+- what files exist
+- what is missing
+- safest first coding task
+- assumptions needed before building the Aimlabs parser and Aim Brain Engine
+
+21. `docs/benchmark_packs/BENCHMARK_PACK_SYSTEM.md`
+22. `docs/DECISIONS_ADDENDUM_002_BENCHMARK_PACKS.md`
+
+## Benchmark pack direction
+
+- Aim Brain must not be Voltaic-only.
+- Voltaic, Viscose, Custom, and future benchmarks should be separate benchmark packs.
+- The universal engine handles raw runs, stats, trends, consistency, weakness detection, recommendations, and coach summaries.
+- Benchmark packs provide scenarios, ranks, thresholds, native categories, universal category mapping, supported platforms, version metadata, and source notes.
+- If threshold data is missing, return progress-only mode. Never invent ranks.
+
+## Smart benchmark pack expansion
+
+Read:
+- `docs/benchmark_packs/BENCHMARK_PACK_AUTHORING_GUIDE.md`
+- `docs/benchmark_packs/SMART_BENCHMARK_PACK_IMPLEMENTATION_PLAN.md`
+
+The goal is to make adding a benchmark simple:
+`pack.json` + optional adapter + validation + tests.
+
+## Benchmark source adapter direction
+
+Also read:
+- `docs/benchmark_packs/BENCHMARK_DATA_SOURCE_STRATEGY.md`
+- `docs/benchmark_packs/BENCHMARK_SOURCE_ADAPTERS_IMPLEMENTATION.md`
+- `docs/benchmark_packs/CODEX_TASKS_BENCHMARK_SOURCE_ADAPTERS.md`
+
+Core rule:
+- Aimlabs/KovaaK's files provide user scores.
+- External benchmark sources provide benchmark definitions.
+- Source adapters normalize external data into validated BenchmarkPack objects.
+
+## Important correction: benchmark source system
+
+The earlier benchmark-pack system is superseded by the source-first benchmark system.
+
+Read:
+- `docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/benchmark_sources/BENCHMARK_SOURCE_IMPLEMENTATION_FLOW.md`
+- `docs/benchmark_sources/CODEX_TASKS_BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/DECISIONS_ADDENDUM_004_BENCHMARK_SOURCE_SYSTEM.md`
+
+Do not implement the old pack-first idea as the main system.
+Implement external source adapters that normalize benchmark data into validated internal definitions.
+
+## Implementation lock
+
+Before coding, read:
+- `docs/implementation/MVP_SCOPE_LOCK.md`
+- `docs/implementation/TECH_STACK_LOCK.md`
+- `docs/implementation/DATABASE_MIGRATIONS_PLAN.md`
+- `docs/implementation/UI_WIREFRAMES_MVP.md`
+- `docs/implementation/DATA_SAFETY_EDGE_CASES.md`
+- `docs/implementation/TESTING_CHECKLIST_MVP.md`
+- `docs/implementation/CODEX_EXECUTION_ORDER.md`
+- `docs/implementation/REAL_DATA_SAMPLE_REQUIREMENTS.md`
+- `docs/DECISIONS_ADDENDUM_005_IMPLEMENTATION_LOCK.md`
+
+The first code must build foundation, not polish.
+
+## First 5 Codex prompts
+
+Before starting implementation, read:
+
+```text
+docs/implementation/FIRST_5_CODEX_PROMPTS.md
+```
+
+Use those prompts in order to avoid drifting into random UI polish or fake importer logic.
