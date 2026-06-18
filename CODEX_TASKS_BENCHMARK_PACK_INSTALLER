@@ -1,0 +1,218 @@
+# Codex Tasks: Benchmark Pack Installer
+
+This task list turns benchmark packs into a real implementation path.
+
+---
+
+## Task BP-001: Add BenchmarkPack Types
+
+Create:
+
+```text
+src/engine/benchmarks/shared/BenchmarkPack.ts
+```
+
+Add types:
+- BenchmarkPack
+- BenchmarkRank
+- BenchmarkCategory
+- BenchmarkScenario
+- BenchmarkThreshold
+- BenchmarkAdapter
+- BenchmarkPackSummary
+- BenchmarkPackLoadResult
+- BenchmarkPackInstallResult
+- BenchmarkPackValidationError
+- PlatformId
+- UniversalAimCategory
+- ScoringDirection
+
+Acceptance:
+- Types compile.
+- No Voltaic-specific logic in shared types.
+
+---
+
+## Task BP-002: Add Pack Validation
+
+Create:
+
+```text
+src/engine/benchmarks/shared/validateBenchmarkPack.ts
+```
+
+Validation must check:
+- required fields exist
+- scenario IDs unique
+- rank IDs unique
+- aliases not duplicated
+- thresholds reference existing scenarios
+- thresholds reference existing ranks
+- universal categories valid
+- platforms valid
+- threshold scores are numbers
+
+Acceptance:
+- invalid pack returns clear error
+- valid sample pack passes
+- tests cover invalid references
+
+---
+
+## Task BP-003: Add Progress-Only Fallback
+
+Create:
+
+```text
+src/engine/benchmarks/shared/progressOnly.ts
+```
+
+Acceptance:
+- scenario without thresholds returns no rank
+- includes note: "Progress only. No benchmark threshold data available."
+- still returns PB/latest/average/trend if runs exist
+
+---
+
+## Task BP-004: Add Rank Progress
+
+Create:
+
+```text
+src/engine/benchmarks/shared/rankProgress.ts
+```
+
+Acceptance:
+- uses thresholds to calculate current rank
+- calculates next rank
+- calculates progress to next rank
+- supports higher-is-better and lower-is-better
+- never invents missing thresholds
+
+---
+
+## Task BP-005: Add Built-In Pack Registry
+
+Create:
+
+```text
+src/engine/benchmarks/shared/benchmarkRegistry.ts
+```
+
+Acceptance:
+- listBenchmarkPacks returns built-in sample packs
+- getBenchmarkPack(id) works
+- duplicate IDs are rejected or clearly warned
+
+---
+
+## Task BP-006: Add Pack Loader
+
+Create:
+
+```text
+src/engine/benchmarks/shared/benchmarkPackLoader.ts
+```
+
+Acceptance:
+- can load pack.json from file
+- validates pack
+- returns LoadResult object
+- does not crash on invalid JSON
+- returns useful errors
+
+---
+
+## Task BP-007: Add Pack Installer
+
+Create:
+
+```text
+src/engine/benchmarks/shared/installBenchmarkPackFromFile.ts
+```
+
+Acceptance:
+- validates pack before install
+- copies pack to user benchmark-packs folder
+- records installed pack in database/settings
+- handles same ID/version safely
+- supports enable/disable
+
+---
+
+## Task BP-008: Add Database Table
+
+Add migration:
+
+```sql
+CREATE TABLE benchmark_pack_settings (
+  pack_id TEXT PRIMARY KEY,
+  version TEXT NOT NULL,
+  source TEXT NOT NULL,
+  installed_path TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  installed_at TEXT NOT NULL,
+  last_validated_at TEXT,
+  validation_status TEXT NOT NULL
+);
+```
+
+Acceptance:
+- migration applies
+- settings can store built-in/user/custom pack state
+
+---
+
+## Task BP-009: Add Sample Packs
+
+Create:
+
+```text
+src/engine/benchmarks/builtin/voltaic/pack.json
+src/engine/benchmarks/builtin/viscose/pack.json
+```
+
+They can be small samples first.
+
+Acceptance:
+- both pass validation
+- both have at least one scenario
+- one test proves both can be analyzed by same engine
+
+---
+
+## Task BP-010: Add Settings UI Plan / Stub
+
+Do not overbuild UI yet.
+
+Add enough to support later UI:
+- list installed packs
+- show status
+- enable/disable
+- import pack button stub
+- validation error display model
+
+Acceptance:
+- UI model is benchmark-agnostic
+- no Voltaic-specific conditions
+
+---
+
+## Task BP-011: Add Tests
+
+Tests:
+- valid pack loads
+- invalid pack fails
+- missing threshold returns progress-only
+- Voltaic sample rank progress works
+- Viscose sample rank progress works
+- user pack install copies file
+- enable/disable state works
+
+---
+
+## First Task for Codex
+
+Start with BP-001 and BP-002 only.
+
+Do not implement UI first.
