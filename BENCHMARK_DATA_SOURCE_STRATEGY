@@ -1,0 +1,405 @@
+# Deprecated / Superseded Notice
+
+This older benchmark-pack document is superseded by the source-first benchmark system.
+
+Read these instead:
+
+- `docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/benchmark_sources/BENCHMARK_SOURCE_IMPLEMENTATION_FLOW.md`
+- `docs/benchmark_sources/CODEX_TASKS_BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/DECISIONS_ADDENDUM_004_BENCHMARK_SOURCE_SYSTEM.md`
+
+The useful idea from this file is that the engine needs a validated internal benchmark definition. The flawed idea is treating Aim Brain-specific packs as the main way benchmarks are obtained.
+
+---
+
+# Benchmark Data Source Strategy
+
+This file clarifies where benchmark data comes from.
+
+The important distinction:
+
+```text
+Playable benchmark scenarios are downloaded inside Aimlabs/KovaaK's.
+User score data is imported from Aimlabs/KovaaK's result files.
+Benchmark definition data comes from benchmark sources and is normalized into Aim Brain.
+```
+
+Do not confuse these three things.
+
+---
+
+## Three Different Data Types
+
+### 1. Playable Scenario Data
+
+This is the actual task/scenario the user plays.
+
+Where it lives:
+- Aimlabs workshop/task system
+- KovaaK's scenarios/playlists/benchmarks
+- Aimbeast if supported later
+
+Aim Brain should not try to be the primary scenario installer in MVP.
+
+User flow:
+
+```text
+User downloads/subscribes to benchmark scenarios inside Aimlabs/KovaaK's.
+User plays those scenarios.
+Aim Brain reads the results afterward.
+```
+
+---
+
+### 2. User Score Data
+
+This is the user's actual performance history.
+
+Where it comes from:
+- Aimlabs local data / Task Data export
+- KovaaK's local stats files / CSV files
+- future public profile/leaderboard imports if available and allowed
+
+This data tells Aim Brain:
+
+```text
+scenario name
+score
+date/time
+platform
+accuracy if available
+duration if available
+extra metrics if available
+```
+
+It does not reliably provide the full benchmark rule system.
+
+---
+
+### 3. Benchmark Definition Data
+
+This tells Aim Brain what scores mean.
+
+It includes:
+- benchmark name
+- benchmark version
+- scenario list
+- scenario aliases
+- platform support
+- ranks
+- rank order
+- score thresholds
+- native categories
+- universal category mapping
+- scoring direction
+- source metadata
+- official/community status
+
+This is what becomes a validated Benchmark Pack internally.
+
+---
+
+## Key Rule
+
+Aim Brain should not make benchmark packs an Aim-Brain-only island.
+
+Aim Brain should support importing benchmark definitions from common sources:
+
+```text
+Official benchmark pages/sheets
+Community Google Sheets
+GitHub raw JSON/CSV files
+Local JSON/CSV files
+Curated built-in packs
+User-created custom packs
+```
+
+The internal Benchmark Pack format is the normalized format after import.
+
+---
+
+## Architecture
+
+```text
+External benchmark source
+↓
+Source Adapter
+↓
+Normalized BenchmarkPack
+↓
+Validation
+↓
+Preview
+↓
+Install / Update
+↓
+Benchmark Registry
+↓
+Aim Brain Engine
+```
+
+The source can be many things, but the engine should only analyze validated BenchmarkPack objects.
+
+---
+
+## Source Types
+
+Aim Brain should support these source types over time.
+
+### Built-In Curated Pack
+
+Ships with the app.
+
+Best for:
+- Voltaic
+- Viscose
+- popular stable benchmarks
+
+Pros:
+- easiest for normal users
+- reliable
+- tested
+- works offline
+
+Cons:
+- must be updated by app releases or pack update system
+
+---
+
+### Local JSON Pack
+
+User imports a local JSON file.
+
+Example:
+
+```text
+Settings → Benchmark Packs → Import Pack → Select pack.json
+```
+
+Best for:
+- custom packs
+- developer testing
+- community packs
+
+---
+
+### Local CSV / Spreadsheet Export
+
+User imports a CSV file.
+
+Best for:
+- benchmark data stored in spreadsheet form
+- quick conversion from community sheets
+
+Requires:
+- source adapter that maps columns to BenchmarkPack fields
+
+---
+
+### Public Google Sheet CSV
+
+Many benchmark communities use Google Sheets.
+
+A public Google Sheet can often be exported as CSV if the sheet is public.
+
+Aim Brain should support a user-provided public CSV link later.
+
+Rules:
+- only use public/shared links
+- do not require Google login for MVP
+- no scraping private sheets
+- cache the imported copy
+- record source URL and import date
+- validate before install
+
+---
+
+### GitHub Raw JSON/CSV
+
+Good for community-maintained benchmark data.
+
+Examples:
+- raw JSON file
+- raw CSV file
+- release asset
+
+Rules:
+- user enters/imports a URL
+- app downloads file
+- validates file
+- shows preview
+- installs only after confirmation
+
+---
+
+### .aimbrainpack Package
+
+Future format.
+
+A zip-like package:
+
+```text
+benchmark.aimbrainpack
+  pack.json
+  README.md
+  assets/icon.png
+```
+
+This is optional and should come later.
+
+---
+
+### Online Pack Catalog
+
+Future feature.
+
+Aim Brain could maintain a small index of trusted benchmark sources.
+
+Example:
+
+```text
+Benchmark Catalog
+- Voltaic
+- Viscose
+- RA
+- Aimerz
+- Community packs
+```
+
+MVP should not depend on a central online catalog.
+
+---
+
+## How EVXL / Voltaic-Like Apps Fit In
+
+Aim Brain should not assume it can use private EVXL or Voltaic backend data.
+
+Apps like EVXL or Voltaic App may use:
+- official/community benchmark data
+- public profiles
+- web backends
+- community sheets
+- internal curated databases
+
+Aim Brain should learn from the pattern, not depend on hidden APIs.
+
+If a source is public and allowed:
+- import it through a source adapter
+- validate it
+- store source metadata
+
+If a source is private/closed:
+- do not depend on it
+- do not scrape it without permission
+
+---
+
+## Normal User Flow
+
+For common built-in benchmarks:
+
+```text
+1. User installs Aim Brain.
+2. Aim Brain already includes Voltaic/Viscose benchmark definitions.
+3. User downloads playable benchmark scenarios in Aimlabs/KovaaK's.
+4. User plays.
+5. Aim Brain imports score results from Aimlabs/KovaaK's.
+6. Aim Brain matches scores to built-in benchmark pack.
+7. Aim Brain shows rank/progress/coach output.
+```
+
+For less common benchmarks:
+
+```text
+1. User finds a public benchmark sheet/GitHub JSON/local file.
+2. User opens Settings → Benchmark Packs → Import Source.
+3. User selects source type.
+4. Aim Brain imports and validates it.
+5. Aim Brain shows preview.
+6. User installs it.
+7. User plays scenarios in Aimlabs/KovaaK's.
+8. Aim Brain analyzes results with the installed pack.
+```
+
+---
+
+## Source Metadata Is Required
+
+Every installed pack should record:
+
+```json
+{
+  "sourceType": "built-in | local-json | local-csv | google-sheet-csv | github-raw | aimbrainpack | custom-created",
+  "sourceName": "Voltaic Official Sheet",
+  "sourceUrl": "https://...",
+  "importedAt": "2026-06-18T12:00:00Z",
+  "lastCheckedAt": null,
+  "isOfficialData": true,
+  "license": "unknown",
+  "notes": ""
+}
+```
+
+This is important for trust.
+
+---
+
+## Legal / Trust Rules
+
+Do not pretend unofficial data is official.
+
+The app should show:
+- official
+- community
+- user-created
+- unknown source
+
+Do not scrape private APIs.
+
+Do not bypass logins.
+
+Do not copy data from sources that disallow it.
+
+Prefer:
+- official public data
+- community sources with permission
+- user-provided exports
+- user-created data
+
+---
+
+## MVP Scope
+
+MVP should support:
+
+```text
+1. Built-in packs
+2. Local pack.json import
+3. Local CSV import if simple
+4. Source metadata
+5. Validation
+6. Preview before install
+```
+
+Delay:
+- Google Sheet live sync
+- GitHub auto-update
+- online catalog
+- .aimbrainpack package
+- custom builder UI
+
+---
+
+## Final Rule
+
+Aim Brain's internal Benchmark Pack is not meant to replace the outside benchmark ecosystem.
+
+It is a translation layer.
+
+```text
+External benchmark data
+→ Aim Brain source adapter
+→ validated BenchmarkPack
+→ universal Aim Brain Engine
+```
