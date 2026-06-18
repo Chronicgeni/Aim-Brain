@@ -1,0 +1,340 @@
+# Database Migrations Plan
+
+This file defines the first SQLite database structure.
+
+Aim Brain must treat raw imported runs as the source of truth.
+
+Derived stats can be recalculated.
+
+---
+
+## Migration Philosophy
+
+Use small migrations.
+
+Do not create one giant uncontrolled schema.
+
+Recommended first migration files:
+
+```text
+src-tauri/migrations/
+  001_app_settings.sql
+  002_import_pipeline.sql
+  003_raw_runs.sql
+  004_scenario_matching.sql
+  005_benchmark_definitions.sql
+  006_analysis_cache.sql
+  007_setup_tracking.sql
+```
+
+MVP can start with 001-005.
+
+---
+
+## 001_app_settings.sql
+
+Purpose:
+- app-level settings
+- schema metadata
+- feature flags
+
+Tables:
+
+```sql
+CREATE TABLE app_settings (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+Examples:
+- active_benchmark_definition_id
+- preferred_platform
+- import_mode
+- theme
+- telemetry_enabled false by default if telemetry ever exists
+
+---
+
+## 002_import_pipeline.sql
+
+Purpose:
+- safe imports
+- duplicate prevention
+- import reports
+
+Tables:
+
+```sql
+CREATE TABLE import_sources (
+  id TEXT PRIMARY KEY,
+  platform TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  path TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE import_batches (
+  id TEXT PRIMARY KEY,
+  source_id TEXT,
+  platform TEXT NOT NULL,
+  status TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  completed_at TEXT,
+  error_message TEXT,
+  imported_count INTEGER NOT NULL DEFAULT 0,
+  skipped_count INTEGER NOT NULL DEFAULT 0,
+  review_count INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (source_id) REFERENCES import_sources(id)
+);
+
+CREATE TABLE imported_files (
+  id TEXT PRIMARY KEY,
+  source_id TEXT,
+  file_path TEXT NOT NULL,
+  file_hash TEXT NOT NULL,
+  file_size INTEGER,
+  modified_at TEXT,
+  imported_at TEXT NOT NULL,
+  import_batch_id TEXT NOT NULL,
+  UNIQUE(file_hash),
+  FOREIGN KEY (source_id) REFERENCES import_sources(id),
+  FOREIGN KEY (import_batch_id) REFERENCES import_batches(id)
+);
+```
+
+Rule:
+- Same file hash should not import twice unless user forces a reimport into a new batch with clear reason.
+
+---
+
+## 003_raw_runs.sql
+
+Purpose:
+- store normalized user score runs
+
+```sql
+CREATE TABLE raw_runs (
+  id TEXT PRIMARY KEY,
+  platform TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  import_batch_id TEXT,
+  imported_file_id TEXT,
+  original_scenario_name TEXT NOT NULL,
+  normalized_scenario_name TEXT,
+  scenario_id TEXT,
+  benchmark_definition_id TEXT,
+  benchmark_version TEXT,
+  score REAL NOT NULL,
+  accuracy REAL,
+  duration_seconds REAL,
+  occurred_at TEXT,
+  imported_at TEXT NOT NULL,
+  setup_id TEXT,
+  raw_payload_json TEXT,
+  validation_status TEXT NOT NULL DEFAULT 'accepted',
+  review_reason TEXT,
+  duplicate_key TEXT,
+  FOREIGN KEY (import_batch_id) REFERENCES import_batches(id),
+  FOREIGN KEY (imported_file_id) REFERENCES imported_files(id)
+);
+
+CREATE INDEX idx_raw_runs_occurred_at ON raw_runs(occurred_at);
+CREATE INDEX idx_raw_runs_scenario_id ON raw_runs(scenario_id);
+CREATE INDEX idx_raw_runs_platform ON raw_runs(platform);
+CREATE INDEX idx_raw_runs_duplicate_key ON raw_runs(duplicate_key);
+```
+
+Important:
+- `raw_payload_json` stores useful original fields.
+- Do not delete raw data when benchmark definitions update.
+- Re-analysis should be possible.
+
+---
+
+## 004_scenario_matching.sql
+
+Purpose:
+- store manual match corrections and review decisions
+
+```sql
+CREATE TABLE import_review_items (
+  id TEXT PRIMARY KEY,
+  import_batch_id TEXT NOT NULL,
+  raw_payload_json TEXT NOT NULL,
+  detected_platform TEXT,
+  detected_scenario_name TEXT,
+  detected_score REAL,
+  detected_occurred_at TEXT,
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL,
+  resolved_at TEXT,
+  resolution_json TEXT,
+  FOREIGN KEY (import_batch_id) REFERENCES import_batches(id)
+);
+
+CREATE TABLE scenario_match_overrides (
+  id TEXT PRIMARY KEY,
+  platform TEXT NOT NULL,
+  original_name TEXT NOT NULL,
+  normalized_name TEXT NOT NULL,
+  benchmark_definition_id TEXT,
+  scenario_id TEXT NOT NULL,
+  confidence TEXT NOT NULL DEFAULT 'manual',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(platform, original_name, benchmark_definition_id)
+);
+```
+
+Rule:
+- Manual corrections should be remembered.
+
+---
+
+## 005_benchmark_definitions.sql
+
+Purpose:
+- source-first benchmark definition system
+
+```sql
+CREATE TABLE benchmark_definition_settings (
+  definition_id TEXT PRIMARY KEY,
+  version TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  source_name TEXT,
+  source_url TEXT,
+  installed_path TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  installed_at TEXT NOT NULL,
+  last_checked_at TEXT,
+  last_validated_at TEXT,
+  validation_status TEXT NOT NULL,
+  is_official_data INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE benchmark_definition_cache (
+  id TEXT PRIMARY KEY,
+  definition_id TEXT NOT NULL,
+  version TEXT NOT NULL,
+  definition_json TEXT NOT NULL,
+  source_metadata_json TEXT NOT NULL,
+  validation_result_json TEXT NOT NULL,
+  cached_at TEXT NOT NULL,
+  UNIQUE(definition_id, version)
+);
+```
+
+Rule:
+- Engine consumes validated normalized definitions.
+- External source adapters feed this table/cache.
+
+---
+
+## 006_analysis_cache.sql
+
+Purpose:
+- cache expensive derived summaries if needed
+
+```sql
+CREATE TABLE analysis_cache (
+  id TEXT PRIMARY KEY,
+  cache_key TEXT NOT NULL UNIQUE,
+  analysis_type TEXT NOT NULL,
+  input_hash TEXT NOT NULL,
+  result_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+```
+
+Rule:
+- Cache is disposable.
+- Raw runs and definitions are truth.
+
+---
+
+## 007_setup_tracking.sql
+
+Purpose:
+- optional setup tracking, separate from core performance
+
+```sql
+CREATE TABLE setup_profiles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  mouse TEXT,
+  mousepad TEXT,
+  skates TEXT,
+  sensitivity_cm_360 REAL,
+  dpi INTEGER,
+  polling_rate INTEGER,
+  notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+Setup tracking should not block MVP import/engine work.
+
+---
+
+## Transaction Rules
+
+Every import batch must run in a transaction where possible.
+
+If parsing crashes halfway:
+
+```text
+batch status = failed
+no partial accepted runs unless explicitly committed safely
+review items are preserved if created
+error message is stored
+```
+
+---
+
+## Duplicate Rules
+
+Use a duplicate key like:
+
+```text
+platform + scenario name + score + occurred_at + source file hash
+```
+
+If no timestamp exists, use:
+
+```text
+platform + scenario name + score + import file hash + row index
+```
+
+Never silently delete duplicates.
+
+Mark them as skipped or review.
+
+---
+
+## Reanalysis Rules
+
+When benchmark definitions update:
+
+- do not change raw runs
+- re-run analysis using new definition
+- keep source metadata visible
+- show if rank changed because benchmark definition changed
+
+---
+
+## Backup Rules
+
+Before destructive migrations:
+
+- create database backup
+- keep at least one previous backup
+- show recovery instructions if migration fails
+
+MVP can start with a simple pre-migration copy.
