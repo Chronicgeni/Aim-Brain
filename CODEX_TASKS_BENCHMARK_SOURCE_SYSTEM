@@ -1,0 +1,187 @@
+# Codex Tasks: Benchmark Source System
+
+These tasks replace the older pack-only approach.
+
+---
+
+## Task BSS-001: Create Normalized Definition Types
+
+Create:
+
+```text
+src/engine/benchmarks/shared/NormalizedBenchmarkDefinition.ts
+```
+
+Add types for:
+- NormalizedBenchmarkDefinition
+- BenchmarkScenarioDefinition
+- BenchmarkRankDefinition
+- BenchmarkThresholdDefinition
+- BenchmarkCategoryDefinition
+- BenchmarkSourceMetadata
+- PlatformId
+- UniversalAimCategory
+- ScoringDirection
+
+Acceptance:
+- no Voltaic-specific logic
+- type names use Definition, not Pack, where practical
+- source metadata included
+
+---
+
+## Task BSS-002: Create Source Adapter Interface
+
+Create:
+
+```text
+src/engine/benchmarks/sources/BenchmarkSourceAdapter.ts
+```
+
+Acceptance:
+- supports built-in, local-json, local-csv, github raw, google sheet CSV later
+- returns clear success/error result
+- does not depend on UI
+
+---
+
+## Task BSS-003: Create Validator
+
+Create:
+
+```text
+src/engine/benchmarks/shared/validateBenchmarkDefinition.ts
+```
+
+Acceptance:
+- validates scenarios/ranks/thresholds/categories/platforms
+- invalid definitions return clear errors
+- missing thresholds are warnings/progress-only, not fatal
+
+---
+
+## Task BSS-004: Built-In Definition Loader
+
+Create sample built-ins:
+
+```text
+src/engine/benchmarks/builtin/voltaic/definition.json
+src/engine/benchmarks/builtin/viscose/definition.json
+```
+
+Acceptance:
+- both validate
+- both can be listed
+- same engine can use both
+
+---
+
+## Task BSS-005: Local JSON Adapter
+
+Create:
+
+```text
+src/engine/benchmarks/sources/localJsonBenchmarkSourceAdapter.ts
+```
+
+Acceptance:
+- imports JSON definition from disk
+- attaches source metadata
+- validates before returning success
+
+---
+
+## Task BSS-006: Progress-Only Fallback
+
+Create:
+
+```text
+src/engine/benchmarks/shared/progressOnly.ts
+```
+
+Acceptance:
+- no thresholds means no rank
+- returns note: "Progress only. No benchmark threshold data available."
+- still tracks PB/latest/averages/trends
+
+---
+
+## Task BSS-007: Registry
+
+Create:
+
+```text
+src/engine/benchmarks/registry/benchmarkDefinitionRegistry.ts
+```
+
+Acceptance:
+- lists built-in and installed definitions
+- supports enable/disable
+- returns active definition
+- no duplicate active IDs without warning
+
+---
+
+## Task BSS-008: Database Settings Table
+
+Add migration:
+
+```sql
+CREATE TABLE benchmark_definition_settings (
+  definition_id TEXT PRIMARY KEY,
+  version TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  source_name TEXT,
+  source_url TEXT,
+  installed_path TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  installed_at TEXT NOT NULL,
+  last_checked_at TEXT,
+  last_validated_at TEXT,
+  validation_status TEXT NOT NULL,
+  is_official_data INTEGER NOT NULL DEFAULT 0
+);
+```
+
+---
+
+## Task BSS-009: Local CSV Adapter
+
+MVP+.
+
+Create a generic CSV adapter with mapping.
+
+Acceptance:
+- converts simple CSV threshold table into definition
+- supports progress-only rows
+- source metadata saved
+
+---
+
+## Task BSS-010: Settings UI Model
+
+Do not overbuild UI.
+
+Create a UI-neutral model for:
+- installed definitions
+- source type
+- enabled/disabled
+- validation status
+- import preview
+- errors/warnings
+
+---
+
+## First Codex Task
+
+Start with:
+
+```text
+BSS-001
+BSS-002
+BSS-003
+```
+
+Do not implement Google Sheet or GitHub adapter first.
+Do not build UI first.
+Do not scrape EVXL or Voltaic.
