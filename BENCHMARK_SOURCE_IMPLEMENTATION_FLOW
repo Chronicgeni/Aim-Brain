@@ -1,0 +1,373 @@
+# Benchmark Source Implementation Flow
+
+This is the implementation plan for the improved benchmark system.
+
+---
+
+## Build Order
+
+Do this in order:
+
+```text
+1. Shared normalized benchmark definition types
+2. Source adapter types
+3. Validator
+4. Built-in definition loader
+5. Local JSON adapter
+6. Local CSV adapter
+7. Install/cache system
+8. Registry
+9. Progress-only fallback
+10. Tests
+11. Settings UI model
+12. GitHub/Google Sheet adapters later
+```
+
+Do not start with UI.
+
+---
+
+## 1. Shared Types
+
+Create:
+
+```text
+src/engine/benchmarks/shared/NormalizedBenchmarkDefinition.ts
+```
+
+Types:
+- NormalizedBenchmarkDefinition
+- BenchmarkScenarioDefinition
+- BenchmarkRankDefinition
+- BenchmarkThresholdDefinition
+- BenchmarkCategoryDefinition
+- BenchmarkSourceMetadata
+- BenchmarkValidationResult
+- PlatformId
+- UniversalAimCategory
+- ScoringDirection
+
+---
+
+## 2. Source Adapter Types
+
+Create:
+
+```text
+src/engine/benchmarks/sources/BenchmarkSourceAdapter.ts
+```
+
+Types:
+
+```ts
+export type BenchmarkSourceType =
+  | "built-in"
+  | "local-json"
+  | "local-csv"
+  | "google-sheet-csv"
+  | "github-raw-json"
+  | "github-raw-csv"
+  | "custom-created";
+
+export type BenchmarkSourceInput = {
+  type: BenchmarkSourceType;
+  path?: string;
+  url?: string;
+  mappingPreset?: string;
+};
+
+export type BenchmarkSourceImportResult =
+  | {
+      ok: true;
+      definition: NormalizedBenchmarkDefinition;
+      warnings: string[];
+    }
+  | {
+      ok: false;
+      errors: string[];
+      warnings: string[];
+    };
+
+export type BenchmarkSourceAdapter = {
+  id: string;
+  name: string;
+  supportedTypes: BenchmarkSourceType[];
+  canHandle(input: BenchmarkSourceInput): boolean;
+  importSource(input: BenchmarkSourceInput): Promise<BenchmarkSourceImportResult>;
+};
+```
+
+---
+
+## 3. Validator
+
+Create:
+
+```text
+src/engine/benchmarks/shared/validateBenchmarkDefinition.ts
+```
+
+Validation checks:
+- definition has id/name/version
+- scenario IDs unique
+- rank IDs unique
+- thresholds reference existing scenarios
+- thresholds reference existing ranks
+- every scenario has platform
+- every scenario has native category
+- every scenario has universal category
+- universal categories are valid
+- scoring direction valid
+- threshold scores are numbers
+- aliases do not conflict inside same definition
+
+Invalid definitions should not crash the app.
+
+Return clear errors.
+
+---
+
+## 4. Built-In Definition Loader
+
+Create:
+
+```text
+src/engine/benchmarks/sources/builtInDefinitionLoader.ts
+```
+
+It loads bundled definitions from:
+
+```text
+src/engine/benchmarks/builtin/
+  voltaic/
+    definition.json
+  viscose/
+    definition.json
+```
+
+The loader should validate built-in definitions in tests.
+
+---
+
+## 5. Local JSON Adapter
+
+Create:
+
+```text
+src/engine/benchmarks/sources/localJsonBenchmarkSourceAdapter.ts
+```
+
+Purpose:
+- import a JSON benchmark definition from disk
+
+Flow:
+- read file
+- parse JSON
+- normalize if already correct shape
+- attach source metadata
+- validate
+- return result
+
+---
+
+## 6. Local CSV Adapter
+
+Create:
+
+```text
+src/engine/benchmarks/sources/localCsvBenchmarkSourceAdapter.ts
+```
+
+Purpose:
+- support spreadsheet-style benchmark tables
+
+MVP:
+- support one generic CSV shape
+- add mapping presets later
+
+Expected columns:
+
+```text
+benchmark_id
+benchmark_name
+version
+platform
+scenario_id
+scenario_name
+aliases
+native_category
+universal_category
+difficulty
+rank_id
+rank_name
+rank_order
+threshold_score
+scoring_direction
+```
+
+---
+
+## 7. Install / Cache System
+
+Create:
+
+```text
+src/engine/benchmarks/install/installBenchmarkDefinition.ts
+```
+
+Install flow:
+
+```text
+source adapter import
+↓
+validation
+↓
+preview
+↓
+user confirms
+↓
+copy/cache normalized definition locally
+↓
+store settings metadata
+↓
+registry refresh
+```
+
+---
+
+## 8. Registry
+
+Create:
+
+```text
+src/engine/benchmarks/registry/benchmarkDefinitionRegistry.ts
+```
+
+Responsibilities:
+- list installed definitions
+- get active definition
+- enable/disable definitions
+- prevent duplicate active IDs
+- handle built-in and user-installed definitions
+- expose benchmark-agnostic summaries to UI
+
+---
+
+## 9. Database Table
+
+Add:
+
+```sql
+CREATE TABLE benchmark_definition_settings (
+  definition_id TEXT PRIMARY KEY,
+  version TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  source_name TEXT,
+  source_url TEXT,
+  installed_path TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  installed_at TEXT NOT NULL,
+  last_checked_at TEXT,
+  last_validated_at TEXT,
+  validation_status TEXT NOT NULL,
+  is_official_data INTEGER NOT NULL DEFAULT 0
+);
+```
+
+---
+
+## 10. Settings UI Model
+
+The Settings UI should show:
+
+```text
+Benchmark Sources / Definitions
+- Voltaic       Built-in       Enabled
+- Viscose       Built-in       Enabled
+- My Benchmark  Local CSV      Disabled
+
+Actions:
+- Import JSON
+- Import CSV
+- Add source URL later
+- Enable/Disable
+- View details
+- Validate again
+- Remove user-installed definition
+```
+
+Built-in definitions can be disabled but not removed.
+
+---
+
+## 11. Engine Integration
+
+The engine flow:
+
+```text
+raw runs
+↓
+active benchmark definition
+↓
+scenario matching using names/aliases
+↓
+threshold lookup if available
+↓
+rank progress or progress-only
+↓
+universal category analysis
+↓
+weakness detection
+↓
+recommendation
+↓
+coach summary
+```
+
+Engine functions should accept a normalized definition:
+
+```ts
+analyzeRuns({ runs, benchmarkDefinition })
+```
+
+Do not hardcode Voltaic.
+
+---
+
+## 12. Tests
+
+Required tests:
+- built-in definition validates
+- local JSON imports valid definition
+- invalid JSON fails clearly
+- CSV adapter creates valid definition
+- missing thresholds use progress-only
+- same engine analyzes Voltaic and Viscose sample definitions
+- UI-facing analysis object does not include source-specific weirdness
+- user-installed definition can be enabled/disabled
+
+---
+
+## MVP Scope
+
+MVP:
+- built-in loader
+- local JSON adapter
+- validator
+- registry
+- progress-only fallback
+- sample Voltaic and Viscose definitions
+- tests
+
+MVP+:
+- local CSV adapter
+- install/cache system
+- settings UI
+
+Later:
+- GitHub raw adapter
+- public Google Sheet CSV adapter
+- .aimbrainpack package
+- custom builder
+- online catalog
+- update checker
