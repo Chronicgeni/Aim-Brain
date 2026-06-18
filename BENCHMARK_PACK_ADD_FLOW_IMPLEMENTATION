@@ -1,0 +1,714 @@
+# Deprecated / Superseded Notice
+
+This older benchmark-pack document is superseded by the source-first benchmark system.
+
+Read these instead:
+
+- `docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/benchmark_sources/BENCHMARK_SOURCE_IMPLEMENTATION_FLOW.md`
+- `docs/benchmark_sources/CODEX_TASKS_BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/DECISIONS_ADDENDUM_004_BENCHMARK_SOURCE_SYSTEM.md`
+
+The useful idea from this file is that the engine needs a validated internal benchmark definition. The flawed idea is treating Aim Brain-specific packs as the main way benchmarks are obtained.
+
+---
+
+# Benchmark Pack Add Flow Implementation
+
+This file defines exactly how new benchmarks are added to Aim Brain.
+
+The goal is:
+
+```text
+Adding a new benchmark should be a guided import/install process,
+not a manual rewrite of the engine.
+```
+
+---
+
+## Final Design
+
+Aim Brain supports two kinds of benchmark packs:
+
+```text
+1. Built-in packs
+2. User-installed custom packs
+```
+
+### Built-In Packs
+
+Examples:
+- Voltaic
+- Viscose
+
+Built-in packs ship with the app.
+
+They live in:
+
+```text
+src/engine/benchmarks/builtin/
+  voltaic/
+    pack.json
+    adapter.ts
+    tests/
+  viscose/
+    pack.json
+    adapter.ts
+    tests/
+```
+
+### User-Installed Custom Packs
+
+Custom packs are imported by the user through the app.
+
+They are copied into the user's local Aim Brain data folder, not into source code.
+
+Example Windows storage:
+
+```text
+%APPDATA%/AimBrain/benchmark-packs/
+```
+
+Example pack folder:
+
+```text
+%APPDATA%/AimBrain/benchmark-packs/viscose-community/
+  pack.json
+  README.md
+```
+
+The app loads these packs at startup and validates them before use.
+
+---
+
+## How a Benchmark Gets Added
+
+A new benchmark can be added in three ways.
+
+---
+
+## Method 1: Built-In Developer Pack
+
+Used for official app-supported benchmarks.
+
+Developer workflow:
+
+```text
+1. Create folder:
+   src/engine/benchmarks/builtin/<benchmark-id>/
+
+2. Add:
+   pack.json
+   adapter.ts only if needed
+   index.ts
+   tests/
+
+3. Add pack to builtInBenchmarkRegistry.
+
+4. Run pack validation tests.
+
+5. Add sample runs for tests.
+
+6. Add UI entry automatically through registry.
+```
+
+No UI hardcoding.
+
+The UI should call:
+
+```ts
+listAvailableBenchmarkPacks()
+```
+
+Then display whatever packs the registry returns.
+
+---
+
+## Method 2: User Imports Pack JSON
+
+Used for community packs or user-created benchmarks.
+
+User flow:
+
+```text
+Settings
+↓
+Benchmark Packs
+↓
+Import Benchmark Pack
+↓
+Select pack.json or .aimbrainpack
+↓
+App validates pack
+↓
+App shows preview
+↓
+User confirms install
+↓
+Pack is copied into local benchmark-packs folder
+↓
+App enables pack
+```
+
+The user should not need to edit source code.
+
+---
+
+## Method 3: In-App Custom Pack Builder
+
+Later feature.
+
+User flow:
+
+```text
+Settings
+↓
+Benchmark Packs
+↓
+Create Custom Benchmark
+↓
+Enter benchmark name
+↓
+Add categories
+↓
+Add scenarios
+↓
+Optionally add ranks
+↓
+Optionally add thresholds
+↓
+Map native categories to universal categories
+↓
+Save
+```
+
+This creates a valid `pack.json` behind the scenes.
+
+This is not MVP, but architecture should allow it.
+
+---
+
+## File Formats
+
+Aim Brain should support:
+
+```text
+pack.json
+.aimbrainpack
+```
+
+### pack.json
+
+Plain JSON file.
+
+Good for developers and advanced users.
+
+### .aimbrainpack
+
+A zip package.
+
+Recommended structure:
+
+```text
+my-benchmark.aimbrainpack
+  pack.json
+  README.md
+  assets/
+    icon.png
+```
+
+MVP can start with `pack.json` only.
+
+`.aimbrainpack` can be added later.
+
+---
+
+## Benchmark Pack Loader
+
+Create:
+
+```text
+src/engine/benchmarks/shared/benchmarkPackLoader.ts
+```
+
+Responsibilities:
+- load built-in packs
+- load installed user packs
+- parse `pack.json`
+- validate packs
+- return usable packs
+- report invalid packs clearly
+- never crash the app because of one bad pack
+
+Public functions:
+
+```ts
+loadBuiltInBenchmarkPacks(): Promise<BenchmarkPack[]>
+
+loadUserBenchmarkPacks(userPackDir: string): Promise<BenchmarkPackLoadResult[]>
+
+loadBenchmarkPackFromFile(path: string): Promise<BenchmarkPackLoadResult>
+
+installBenchmarkPackFromFile(path: string, userPackDir: string): Promise<BenchmarkPackInstallResult>
+
+listAvailableBenchmarkPacks(): Promise<BenchmarkPackSummary[]>
+```
+
+---
+
+## Load Result Types
+
+Use explicit result objects.
+
+```ts
+export type BenchmarkPackLoadResult =
+  | {
+      ok: true;
+      pack: BenchmarkPack;
+      source: "built-in" | "user-installed" | "file-preview";
+      path?: string;
+    }
+  | {
+      ok: false;
+      source: "built-in" | "user-installed" | "file-preview";
+      path?: string;
+      error: BenchmarkPackValidationError;
+    };
+```
+
+Install result:
+
+```ts
+export type BenchmarkPackInstallResult =
+  | {
+      ok: true;
+      packId: string;
+      installedPath: string;
+      warnings: string[];
+    }
+  | {
+      ok: false;
+      error: BenchmarkPackValidationError;
+    };
+```
+
+The UI should show validation errors in normal language.
+
+---
+
+## Benchmark Pack Registry
+
+Create:
+
+```text
+src/engine/benchmarks/shared/benchmarkRegistry.ts
+```
+
+Responsibilities:
+- combine built-in packs and valid installed packs
+- expose enabled packs
+- prevent duplicate IDs
+- allow active benchmark selection
+- support disabled packs
+
+Suggested public API:
+
+```ts
+getBenchmarkPack(id: string): BenchmarkPack | null
+
+listBenchmarkPacks(): BenchmarkPackSummary[]
+
+enableBenchmarkPack(id: string): void
+
+disableBenchmarkPack(id: string): void
+
+getActiveBenchmarkPack(): BenchmarkPack | null
+
+setActiveBenchmarkPack(id: string): void
+```
+
+---
+
+## Pack Installation Rules
+
+When user imports a pack:
+
+1. Read file.
+2. Parse JSON.
+3. Validate schema.
+4. Validate references.
+5. Show preview.
+6. Ask for confirmation.
+7. Copy into local benchmark-packs folder.
+8. Add to registry.
+9. Re-run validation.
+10. Enable pack if user chooses.
+
+Never trust imported packs blindly.
+
+---
+
+## Pack Preview UI
+
+Before installing, show:
+
+```text
+Benchmark name
+Version
+Supported platforms
+Scenario count
+Rank count
+Threshold count
+Native categories
+Universal category coverage
+Official/community/custom source
+Warnings
+Errors
+```
+
+Example:
+
+```text
+Viscose Community Pack
+Version: 2026.1
+Platform: KovaaK's
+Scenarios: 84
+Ranks: 8
+Thresholds: 672
+Source: Community
+Warnings: 5 scenarios have no threshold data
+Status: Safe to install
+```
+
+If invalid:
+
+```text
+Cannot install pack
+Reason: threshold references missing scenario "abc"
+```
+
+---
+
+## Duplicate Pack IDs
+
+If a user imports a pack with an ID that already exists:
+
+Options:
+- update existing pack
+- install as new version
+- cancel
+
+MVP behavior:
+
+```text
+If same pack ID and newer version:
+  ask user to update.
+
+If same pack ID and same version:
+  ask user to replace or cancel.
+
+If same pack ID but different source:
+  warn strongly.
+```
+
+---
+
+## Versioning
+
+Each pack must include:
+
+```json
+{
+  "id": "viscose",
+  "version": "2026.1"
+}
+```
+
+Pack version is important because thresholds may change.
+
+Raw runs should store:
+- benchmarkId used
+- benchmarkVersion used
+- scenarioId matched at time of analysis if needed
+
+The engine should be able to re-analyze old runs with newer benchmark data, but it should be transparent when benchmark versions change.
+
+---
+
+## Custom Packs Without Thresholds
+
+Custom packs do not need ranks or thresholds.
+
+Minimum useful custom pack:
+
+```json
+{
+  "id": "my-practice-pack",
+  "name": "My Practice Pack",
+  "version": "1.0.0",
+  "supportedPlatforms": ["aimlabs"],
+  "defaultScoringDirection": "higher-is-better",
+  "ranks": [],
+  "categories": [],
+  "scenarios": [
+    {
+      "id": "microshot-practice",
+      "name": "Microshot Practice",
+      "platform": "aimlabs",
+      "nativeCategory": "Clicking",
+      "universalCategory": "static-clicking",
+      "hasThresholdData": false
+    }
+  ],
+  "thresholds": []
+}
+```
+
+The app should still track:
+- PB
+- latest score
+- last-10 average
+- trend
+- consistency
+- volume
+- coach notes
+
+It should not show rank.
+
+---
+
+## UI Settings Page
+
+Add a Benchmark Packs section in Settings.
+
+UI should include:
+
+```text
+Installed Packs
+- Voltaic     Built-in     Enabled
+- Viscose     Built-in/User Installed     Enabled
+- My Pack     Custom       Disabled
+
+Actions
+- Import Pack
+- Create Custom Pack
+- Enable / Disable
+- View Details
+- Validate Again
+- Remove User Pack
+```
+
+Built-in packs cannot be removed, only disabled.
+
+User packs can be removed.
+
+---
+
+## Storage
+
+Recommended local structure:
+
+```text
+AimBrainData/
+  benchmark-packs/
+    installed/
+      viscose-community/
+        pack.json
+        README.md
+    disabled/
+    cache/
+```
+
+Also store pack settings in SQLite:
+
+```text
+benchmark_pack_settings
+```
+
+Fields:
+- pack_id
+- version
+- source
+- installed_path
+- enabled
+- installed_at
+- last_validated_at
+- validation_status
+
+---
+
+## Database Table
+
+Add table:
+
+```sql
+CREATE TABLE benchmark_pack_settings (
+  pack_id TEXT PRIMARY KEY,
+  version TEXT NOT NULL,
+  source TEXT NOT NULL,
+  installed_path TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  installed_at TEXT NOT NULL,
+  last_validated_at TEXT,
+  validation_status TEXT NOT NULL
+);
+```
+
+Source values:
+- built_in
+- user_installed
+- custom_created
+
+---
+
+## Engine Flow With Packs
+
+The engine flow:
+
+```text
+Raw runs
+↓
+Active benchmark pack selected
+↓
+Scenario matching using pack scenarios + aliases
+↓
+If threshold exists:
+    rank progress
+Else:
+    progress-only stats
+↓
+Universal category mapping
+↓
+Weakness detection
+↓
+Recommendation
+↓
+UI analysis object
+```
+
+---
+
+## UI Must Stay Benchmark-Agnostic
+
+Bad:
+
+```ts
+if (benchmarkId === "voltaic") {
+  showVoltaicRank();
+}
+```
+
+Good:
+
+```ts
+const analysis = analyzeRuns({ runs, benchmarkPack });
+showAnalysis(analysis);
+```
+
+The analysis object should already contain:
+- benchmarkName
+- scenarioName
+- currentRank
+- nextRank
+- progressToNextRank
+- normalizedProgress
+- hasThresholdData
+- note
+- category
+- universalCategory
+- recommendation
+
+---
+
+## MVP Implementation Scope
+
+For MVP, implement:
+
+```text
+1. Built-in pack loader
+2. Pack JSON validation
+3. Registry
+4. Manual import of pack.json
+5. Local installation folder
+6. Enable/disable packs
+7. Progress-only fallback
+8. Tests with sample Voltaic and Viscose packs
+```
+
+Delay:
+- .aimbrainpack zip format
+- full custom pack builder
+- online community pack browser
+- automatic online updates
+
+---
+
+## Codex Build Instruction
+
+Use this exact instruction:
+
+```text
+Implement benchmark pack addition as a real install/load system.
+
+Do not just document that packs exist.
+
+Create:
+- BenchmarkPack types
+- pack.json schema
+- validateBenchmarkPack
+- benchmarkPackLoader
+- benchmarkRegistry
+- installBenchmarkPackFromFile
+- benchmark_pack_settings database table
+- Settings UI plan for installed packs
+- tests for installing, validating, enabling, disabling, and analyzing packs
+
+Use built-in Voltaic and Viscose sample packs.
+Support user-imported pack.json files.
+Missing thresholds must return progress-only mode.
+Do not hardcode Voltaic into the core engine.
+```
+
+---
+
+## Success Criteria
+
+This implementation is successful when:
+
+- Codex can add a new benchmark by creating a pack folder and pack.json.
+- A user can import a pack.json from the app.
+- Invalid packs show clear errors.
+- Valid packs appear in Settings.
+- A pack can be enabled/disabled.
+- The engine can analyze runs using the active pack.
+- Missing thresholds return progress-only mode.
+- UI does not need benchmark-specific if-statements.
+
+---
+
+## External Source Adapter Update
+
+Benchmark packs should not be Aim Brain-only.
+
+A user should be able to get benchmark definitions from common sources, then Aim Brain normalizes them.
+
+Supported source direction:
+
+```text
+Built-in curated packs
+Local pack.json
+Local CSV
+GitHub raw JSON/CSV
+Public Google Sheet CSV
+.aimbrainpack later
+Custom builder later
+```
+
+Read:
+
+```text
+docs/benchmark_packs/BENCHMARK_DATA_SOURCE_STRATEGY.md
+docs/benchmark_packs/BENCHMARK_SOURCE_ADAPTERS_IMPLEMENTATION.md
+docs/benchmark_packs/CODEX_TASKS_BENCHMARK_SOURCE_ADAPTERS.md
+```
+
