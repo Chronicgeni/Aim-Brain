@@ -1,0 +1,278 @@
+# First 5 Codex Prompts
+
+Use these prompts after the Aim Brain documentation pack is inside the GitHub repo.
+
+The goal is to keep Codex controlled.
+
+Do not let Codex jump around, overbuild UI, or invent missing data.
+
+---
+
+## Prompt 1 — Read And Summarize Only
+
+Use this first.
+
+```text
+Read AGENTS.md and docs/CODEX_START_HERE.md.
+
+Important: follow the implementation lock.
+
+Read:
+- docs/implementation/MVP_SCOPE_LOCK.md
+- docs/implementation/TECH_STACK_LOCK.md
+- docs/implementation/CODEX_EXECUTION_ORDER.md
+- docs/implementation/DATABASE_MIGRATIONS_PLAN.md
+- docs/implementation/REAL_DATA_SAMPLE_REQUIREMENTS.md
+- docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md
+- docs/DECISIONS_ADDENDUM_005_IMPLEMENTATION_LOCK.md
+
+Do not write code yet.
+
+First summarize:
+1. product identity
+2. what Aim Brain is not
+3. MVP scope
+4. selected tech stack
+5. source-first benchmark system
+6. data safety rules
+7. what real samples are still missing
+8. the safest first implementation task
+
+Then propose only Stage 1 and Stage 2.
+```
+
+Expected answer:
+- Codex should say Aim Brain is a local-first automatic aim-training coach desktop app.
+- It should say it is not a spreadsheet, not Voltaic-only, and not manual logging-first.
+- It should propose scaffold first, then database migrations.
+- It should not write code yet.
+
+If Codex starts coding immediately, stop it.
+
+---
+
+## Prompt 2 — Scaffold The App
+
+Use this only after Prompt 1 looks correct.
+
+```text
+Implement Stage 1 from docs/implementation/CODEX_EXECUTION_ORDER.md.
+
+Create the project scaffold for Aim Brain using:
+- Tauri
+- React
+- TypeScript
+- Vite
+- Rust backend
+- SQLite-ready structure
+
+Follow docs/implementation/TECH_STACK_LOCK.md.
+
+Create the recommended folder structure:
+- src/app
+- src/components
+- src/screens
+- src/services
+- src/engine
+- src/types
+- src-tauri/src/commands
+- src-tauri/src/db
+- src-tauri/src/importers
+- src-tauri/src/paths
+- src-tauri/src/safety
+- src-tauri/src/hashing
+- tests/fixtures
+
+Add a simple backend command proving the frontend can call Rust.
+
+Do not build coach logic yet.
+Do not build importer logic yet.
+Do not add fake real Aimlabs or KovaaK's support.
+Do not overbuild UI.
+
+After changes, explain:
+1. files created
+2. how to run the app
+3. how to run tests
+4. what should be done next
+```
+
+Acceptance:
+- app launches
+- frontend renders
+- backend command works
+- folder structure is clean
+- no product logic is randomly hidden in UI components
+
+---
+
+## Prompt 3 — Add SQLite Migrations
+
+Use this after the scaffold runs.
+
+```text
+Implement Stage 2 from docs/implementation/CODEX_EXECUTION_ORDER.md.
+
+Add the SQLite database foundation from:
+docs/implementation/DATABASE_MIGRATIONS_PLAN.md
+
+Create migrations for:
+- app_settings
+- import_sources
+- import_batches
+- imported_files
+- raw_runs
+- import_review_items
+- scenario_match_overrides
+- benchmark_definition_settings
+- benchmark_definition_cache
+
+Add Rust database initialization code.
+Add migration execution on startup or through a controlled init command.
+Add tests where practical to verify the database initializes and migrations apply.
+
+Rules:
+- raw_runs are source of truth
+- no direct database logic inside React components
+- no destructive migration without backup direction
+- no fake production parser logic
+
+After changes, explain:
+1. migration files added
+2. database path behavior
+3. how migrations are run
+4. tests added
+5. next safest task
+```
+
+Acceptance:
+- empty DB can initialize
+- migrations apply
+- schema matches MVP needs
+- UI does not own raw SQL
+
+---
+
+## Prompt 4 — Add Benchmark Source Types And Validator
+
+Use this after database foundation.
+
+```text
+Implement the first part of the source-first benchmark system.
+
+Read:
+- docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md
+- docs/benchmark_sources/BENCHMARK_SOURCE_IMPLEMENTATION_FLOW.md
+- docs/benchmark_sources/CODEX_TASKS_BENCHMARK_SOURCE_SYSTEM.md
+- docs/DECISIONS_ADDENDUM_004_BENCHMARK_SOURCE_SYSTEM.md
+
+Implement only:
+- NormalizedBenchmarkDefinition types
+- BenchmarkSourceMetadata type
+- BenchmarkSourceAdapter interface
+- validateBenchmarkDefinition function
+- sample valid definition fixture
+- sample invalid definition fixture
+- tests for validation
+
+Do not implement Google Sheet import yet.
+Do not implement GitHub import yet.
+Do not scrape EVXL or Voltaic.
+Do not bring back the old pack-first system as the main design.
+
+After changes, explain:
+1. source-first architecture added
+2. validation rules
+3. tests added
+4. how this avoids Voltaic-only design
+```
+
+Acceptance:
+- valid sample passes
+- invalid sample fails clearly
+- missing thresholds are warnings/progress-only, not fake ranks
+- type names prefer Definition over Pack where practical
+- source metadata exists
+
+---
+
+## Prompt 5 — Add Engine Core Tests And Progress-Only Analysis
+
+Use this after benchmark source types/validator.
+
+```text
+Implement the first Aim Brain Engine core.
+
+Read:
+- docs/architecture/AIM_BRAIN_ENGINE.md
+- docs/implementation/TESTING_CHECKLIST_MVP.md
+- docs/implementation/MVP_SCOPE_LOCK.md
+
+Implement pure TypeScript engine functions for:
+- PB
+- latest score
+- last-5 average
+- last-10 average
+- all-time average
+- basic trend direction
+- basic consistency/volatility
+- progress-only fallback
+- simple scenario matching using exact names and aliases
+- simple coach summary output
+
+Use fixtures only.
+
+Do not connect to real Aimlabs or KovaaK's files yet.
+Do not invent benchmark thresholds.
+Do not put analysis logic in React components.
+Do not make Voltaic-specific engine functions.
+
+Add tests for:
+- no runs
+- one run
+- more than 10 runs
+- improving trend
+- inconsistent scores
+- alias matching
+- missing threshold progress-only result
+
+After changes, explain:
+1. engine functions added
+2. test coverage
+3. known limitations
+4. what data samples are still needed
+```
+
+Acceptance:
+- engine is pure/testable
+- same engine can analyze at least two sample definitions
+- progress-only fallback works
+- coach summary is based on evidence
+- no UI dependency
+
+---
+
+## After These 5 Prompts
+
+After these are done, the project should have:
+
+```text
+working app scaffold
+SQLite foundation
+source-first benchmark definition system
+basic validation
+basic engine tests
+progress-only analysis
+```
+
+Then the next phase is:
+
+```text
+1. sample import pipeline
+2. review queue
+3. real Aimlabs sample parser
+4. real KovaaK's sample parser
+5. minimal Home UI using engine output
+```
+
+Do not polish UI before the data pipeline works.
