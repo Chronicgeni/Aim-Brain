@@ -1,0 +1,87 @@
+# Decisions Addendum 002 — Benchmark Pack System
+
+## Decision 019: Aim Brain Must Be Benchmark-Agnostic
+
+Decision:
+- Aim Brain must not be hardcoded around Voltaic only.
+- Voltaic should be one benchmark pack, not the whole engine.
+- Viscose and future benchmarks should be added as separate benchmark packs.
+
+Reason:
+- Different benchmarks can use different scenario lists, ranks, thresholds, categories, difficulty levels, platforms, and scoring rules.
+- The universal Aim Brain Engine should stay stable while benchmark packs provide benchmark-specific data.
+
+Status:
+- locked as direction
+
+---
+
+## Decision 020: Universal Engine + Benchmark Packs
+
+Decision:
+- Aim Brain Engine handles universal analysis.
+- Benchmark packs provide benchmark-specific scenario/rank/threshold/category data.
+
+Architecture:
+
+```text
+Raw runs
+↓
+Aim Brain Engine
+↓
+Active Benchmark Pack
+↓
+Analysis result
+↓
+UI display
+```
+
+The UI asks the engine for analysis results. The UI should not care whether the user is viewing Voltaic, Viscose, or another benchmark.
+
+---
+
+## Decision 021: Missing Thresholds Must Use Progress-Only Mode
+
+Decision:
+- If a scenario has no threshold data, the engine must not invent ranks.
+- The correct fallback is progress-only tracking.
+
+Required output style:
+
+```text
+Progress only. No benchmark threshold data available.
+```
+
+Reason:
+- Honest analysis matters more than fake rank conversion.
+
+---
+
+## Decision 022: Support Benchmark, Universal Aim, and Comparison Modes
+
+Decision:
+- Aim Brain should eventually support three analysis modes:
+
+1. Benchmark Mode
+   - Shows native benchmark ranks, categories, and scenario progress.
+
+2. Universal Aim Mode
+   - Maps scenarios into universal aim categories and shows cross-benchmark skill patterns.
+
+3. Comparison Mode
+   - Compares benchmark packs using normalized progress without pretending ranks are identical.
+
+---
+
+## Implementation Priority
+
+Codex should implement this as engine architecture before adding many benchmark-specific UI features.
+
+First implementation:
+- define shared BenchmarkPack interface
+- add sample Voltaic pack
+- add sample Viscose pack
+- add progress-only fallback
+- add tests proving the same engine can analyze both packs
+
+Do not hardcode Voltaic into the core engine.
