@@ -1,0 +1,84 @@
+# Codex Final Prompt
+
+Paste this into Codex after adding this documentation pack to the repo.
+
+---
+
+Read `AGENTS.md` and `docs/CODEX_START_HERE.md`.
+
+Then read the docs listed in the read order.
+
+Do not write code immediately.
+
+Summarize the project in your own words:
+1. Product identity
+2. Non-negotiable rules
+3. Import strategy
+4. Aim Brain Engine architecture
+5. UI direction
+6. Data safety rules
+7. What is missing
+8. Safest first implementation task
+
+Important constraints:
+- The app is named Aim Brain.
+- Do not build a spreadsheet UI.
+- Do not build manual score logging as the main workflow.
+- Do not copy EVXL directly.
+- Do not modify Aimlabs files.
+- Do not start with OCR.
+- Do not add cloud sync.
+- Do not put coach logic inside UI components.
+- Engine calculations must be deterministic and testable.
+- Recommendations must include evidence and success conditions.
+- Scenarios without threshold data must use progress-only mode.
+
+After summarizing, propose one small implementation task only.
+
+Additional benchmark pack requirement:
+- Read `docs/benchmark_packs/BENCHMARK_PACK_SYSTEM.md`.
+- Do not build Aim Brain as Voltaic-only.
+- Design the engine so Voltaic, Viscose, Custom, and future benchmarks are separate benchmark packs.
+- Missing thresholds must return progress-only mode.
+- Add tests proving the same engine can analyze at least two benchmark packs.
+
+Smart benchmark pack requirement:
+- Read `docs/benchmark_packs/BENCHMARK_PACK_AUTHORING_GUIDE.md`.
+- Read `docs/benchmark_packs/SMART_BENCHMARK_PACK_IMPLEMENTATION_PLAN.md`.
+- Keep adding benchmarks simple: `pack.json` + optional adapter + tests.
+- Do not create one engine per benchmark.
+- Implement validation so bad packs fail clearly.
+
+External benchmark source requirement:
+- Read `docs/benchmark_packs/BENCHMARK_DATA_SOURCE_STRATEGY.md`.
+- Read `docs/benchmark_packs/BENCHMARK_SOURCE_ADAPTERS_IMPLEMENTATION.md`.
+- Do not make benchmark packs an Aim-Brain-only dead end.
+- Add source adapters so public/common benchmark data sources can be normalized into BenchmarkPack.
+- Do not rely on hidden EVXL/Voltaic APIs.
+- Do not scrape private data.
+- Keep score import and benchmark definition import separate.
+
+Benchmark source correction:
+- The old pack-first system is superseded.
+- Read `docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md`.
+- Implement source adapters and normalized benchmark definitions.
+- Do not make Aim Brain-specific packs the only benchmark import path.
+- Start with built-in definitions + local JSON + validator.
+- Add local CSV next.
+- GitHub raw and public Google Sheet CSV come later.
+
+Implementation lock requirement:
+- Read all docs in `docs/implementation/`.
+- MVP scope is locked: import → database → engine → coach summary → simple UI.
+- Use Tauri + Rust backend + React + TypeScript + Vite + SQLite.
+- Rust owns file/database safety.
+- TypeScript engine must be pure/testable.
+- Do not build polished UI first.
+- Do not fake real Aimlabs/KovaaK's parser completion without real samples.
+- Start by summarizing, then propose Stage 1 and Stage 2 only.
+
+First prompt sequence requirement:
+- Read `docs/implementation/FIRST_5_CODEX_PROMPTS.md`.
+- Follow the first five prompts in order.
+- Do not skip straight to UI polish.
+- Do not fake real Aimlabs/KovaaK's parser completion.
