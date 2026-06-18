@@ -1,0 +1,107 @@
+# Codex Tasks — Aim Brain Engine
+
+## Task 1 — Engine Skeleton
+
+Create `src/engine/` with module folders for types, stats, ranks, scenarios, diagnosis, recommendations, coach, and index.
+
+Deliverables:
+
+- `analyzeAimProfile()` exported from `src/engine/index.ts`
+- initial TypeScript types
+- sample data fixture
+- one basic test or debug script
+
+## Task 2 — Score Stats
+
+Implement:
+
+- latest score
+- personal best
+- all-run average
+- last-5 average
+- last-10 average
+- total runs
+- run count by scenario
+- accepted-only filtering
+
+## Task 3 — Consistency and Confidence
+
+Implement first version:
+
+- consistency from recent run variance
+- confidence from last-10 average vs PB, consistency, and sample size
+- readable confidence labels
+
+## Task 4 — Scenario Matching
+
+Implement:
+
+- scenario name normalization
+- exact canonical match
+- alias match
+- platform-aware matching
+- unresolved match output
+
+Do not auto-confirm fuzzy matches silently.
+
+## Task 5 — Rank Progress
+
+Implement:
+
+- threshold lookup by scenario and benchmark set
+- rank band detection
+- progress to next rank
+- progress-only fallback when threshold data is missing
+
+Never invent rank data.
+
+## Task 6 — Category Analysis
+
+Implement:
+
+- category grouping
+- category average strength
+- category confidence
+- category volume
+- strongest and weakest category
+- most neglected category
+
+## Task 7 — Weakness Detector
+
+Implement a transparent weak-link score using:
+
+- target gap
+- consistency penalty
+- recency penalty
+- volume deficit
+- decay/freshness risk placeholder
+
+Return both score and explanation.
+
+## Task 8 — Training Recommender
+
+Implement:
+
+- session type
+- priority categories
+- avoid-overtraining categories
+- recommended scenarios
+- reason for each recommendation
+- success condition
+
+## Task 9 — Coach Summary
+
+Implement rule-based summary templates.
+
+The coach summary must include:
+
+- what is strong
+- what is blocking progress
+- what to train today
+- why that recommendation was made
+
+## Task 10 — UI Connection
+
+Update Home/Summary/Coach screens to display engine output.
+
+Do not duplicate engine calculations in UI components.
