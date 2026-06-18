@@ -1,0 +1,108 @@
+# Aim Brain Engine Roadmap
+
+## Product direction
+
+Aim Brain is a local-first aim-training coach. The engine is the actual product core. UI polish matters, but it comes after trustworthy data and useful decisions.
+
+## Phase 1 — Engine foundation
+
+Goal: make raw run data produce reliable scenario stats.
+
+Build:
+
+- ScoreRun type
+- Scenario type
+- RankThreshold type
+- accepted-run filtering
+- PB/latest/all-average/last-10
+- basic consistency
+- sample data
+- test cases
+
+Exit condition:
+
+- The app can take raw runs and return scenario summaries without using UI calculations.
+
+## Phase 2 — Scenario and category logic
+
+Goal: prevent data chaos.
+
+Build:
+
+- scenario database shape
+- scenario aliases
+- scenario name normalization
+- platform-aware matching
+- category/subcategory mapping
+- unresolved scenario output
+
+Exit condition:
+
+- Imported names can be mapped or safely flagged for review.
+
+## Phase 3 — Rank conversion
+
+Goal: support Voltaic-style progress without lying.
+
+Build:
+
+- rank scale
+- threshold set model
+- score-to-rank conversion
+- progress to next rank
+- `progress_only` fallback
+
+Exit condition:
+
+- Scenarios with thresholds show rank progress; scenarios without thresholds honestly say no threshold data.
+
+## Phase 4 — Diagnosis
+
+Goal: make the app explain what matters.
+
+Build:
+
+- weakest category
+- strongest category
+- neglected category
+- inconsistent category
+- plateau detection
+- Master readiness
+- category imbalance
+
+Exit condition:
+
+- The app can say what is blocking the user and why.
+
+## Phase 5 — Recommendation
+
+Goal: turn analysis into today’s action.
+
+Build:
+
+- session type selection
+- recommended categories
+- recommended scenarios
+- avoid-overtraining categories
+- success condition
+- coach summary
+
+Exit condition:
+
+- The app can tell the user what to train today and what result would prove it worked.
+
+## Phase 6 — Product integration
+
+Goal: the UI becomes a display layer for the engine.
+
+Build:
+
+- Home cards from engine output
+- Summary from engine output
+- Coach Report from engine output
+- Weekly Coach from engine output
+- evidence-based explanation cards
+
+Exit condition:
+
+- No important coaching logic lives inside React components.
