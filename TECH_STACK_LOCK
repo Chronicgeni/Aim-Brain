@@ -1,0 +1,325 @@
+# Tech Stack Lock
+
+This file locks the technical direction for Aim Brain.
+
+The goal is not to pick trendy tools.
+
+The goal is to pick a stack that supports:
+
+- local-first desktop use
+- safe file import
+- strong data ownership
+- responsive UI
+- deterministic engine testing
+- long-term maintainability
+
+---
+
+## Final Stack Decision
+
+Use:
+
+```text
+Tauri
+Rust backend
+React frontend
+TypeScript
+Vite
+SQLite
+CSS modules or plain scoped CSS
+Vitest for TypeScript tests
+Rust cargo test for Rust tests
+Playwright later for E2E
+```
+
+---
+
+## Why This Stack
+
+### Tauri
+
+Use Tauri because Aim Brain is a local desktop app that needs file access, native dialogs, local database storage, and good performance without bundling a huge browser engine.
+
+Tauri gives us:
+- desktop app shell
+- Rust backend
+- web frontend
+- native file/system access through controlled commands
+- smaller app direction than Electron
+- good fit for local-first apps
+
+### Rust Backend
+
+Rust should handle:
+
+- file system access
+- local data paths
+- import file reading
+- hashing files
+- database migrations
+- SQLite access
+- backup/restore
+- crash-safe import transactions
+- OS-specific paths
+- future background watcher
+
+Rust should not contain all coach logic unless we intentionally port it later.
+
+### React + TypeScript Frontend
+
+React + TypeScript should handle:
+
+- UI
+- screen state
+- user actions
+- calling Tauri commands
+- displaying analysis results
+- engine logic if kept in `src/engine`
+
+The Aim Brain Engine can be implemented as a TypeScript logic layer first because it is fast to build, easy to test, and already fits the earlier Codex docs.
+
+### SQLite
+
+SQLite is the correct local database choice.
+
+It is simple, reliable, offline-first, and perfect for raw runs, imports, benchmark definitions, source metadata, settings, and analysis caches.
+
+---
+
+## Architecture Boundary
+
+Use this boundary:
+
+```text
+React UI
+↓ calls
+Frontend services
+↓ calls
+Aim Brain Engine / API client
+↓ calls
+Tauri commands
+↓ calls
+Rust services
+↓ calls
+SQLite / file system
+```
+
+The UI should not directly perform analysis or directly own database logic.
+
+---
+
+## Engine Placement
+
+Keep the first Aim Brain Engine in:
+
+```text
+src/engine/
+```
+
+Export from:
+
+```text
+src/engine/index.ts
+```
+
+The engine should be:
+
+- deterministic
+- testable
+- independent from React components
+- independent from direct database calls
+- mostly pure functions
+
+Good:
+
+```ts
+analyzeRuns({ runs, benchmarkDefinition, settings })
+```
+
+Bad:
+
+```ts
+HomePage.calculateVoltaicWeakness()
+```
+
+---
+
+## Database Access Rule
+
+Database access should go through controlled services.
+
+Do not scatter raw SQL through UI components.
+
+Preferred layers:
+
+```text
+src-tauri/src/db/
+src-tauri/src/importers/
+src-tauri/src/commands/
+
+src/services/
+src/engine/
+src/ui/
+```
+
+Frontend can request data through Tauri commands.
+
+The Rust backend owns the database connection and migrations.
+
+---
+
+## Frontend Styling
+
+For MVP:
+
+```text
+No heavy component library.
+Use custom CSS or CSS modules.
+Build a clean app-like layout manually.
+```
+
+Reason:
+- Aim Brain needs a custom coach-first identity.
+- UI libraries can make it look generic.
+- Less dependency risk early.
+
+Later, if needed, add a small component utility library, but do not start there.
+
+---
+
+## State Management
+
+MVP:
+
+```text
+React state + small app store/context + query-style service hooks
+```
+
+Do not add complex global state management immediately.
+
+Add Zustand/TanStack Query later only if the app becomes hard to manage.
+
+---
+
+## Charts
+
+MVP:
+
+```text
+simple cards and small trend lines if easy
+```
+
+Do not build complex charts before the data pipeline works.
+
+Later:
+- radar chart
+- category trend chart
+- score history chart
+- benchmark comparison chart
+
+---
+
+## Testing Tools
+
+### TypeScript
+
+Use Vitest for:
+
+- engine functions
+- benchmark definition validator
+- scenario matching
+- recommendation logic
+- source adapters that run in JS
+
+### Rust
+
+Use cargo test for:
+
+- file reading
+- file hashing
+- import transactions
+- SQLite repository logic
+- migration checks
+
+### E2E Later
+
+Use Playwright later for:
+
+- app launch
+- import flow
+- review queue flow
+- settings flow
+
+Not needed as first task.
+
+---
+
+## Version Rule
+
+Do not hardcode exact dependency versions in docs unless needed.
+
+Use the current stable tooling at project creation time.
+
+Codex should create the project using the official Tauri creation flow and then commit the generated lockfiles.
+
+---
+
+## First Repo Structure
+
+Recommended:
+
+```text
+aim-brain/
+  AGENTS.md
+  README.md
+  docs/
+
+  src/
+    app/
+    components/
+    screens/
+      Home/
+      Import/
+      ReviewQueue/
+      Runs/
+      BenchmarkSources/
+      Settings/
+    services/
+    engine/
+      core/
+      benchmarks/
+      recommendations/
+      summaries/
+      index.ts
+    types/
+
+  src-tauri/
+    src/
+      main.rs
+      commands/
+      db/
+      importers/
+      paths/
+      safety/
+      hashing/
+    migrations/
+
+  tests/
+    fixtures/
+      aimlabs/
+      kovaaks/
+      benchmark-definitions/
+```
+
+---
+
+## Non-Negotiable Tech Rules
+
+- local-first
+- no cloud requirement
+- no hidden scraping
+- no trainer file modification
+- raw runs are source of truth
+- source adapters normalize benchmark definitions
+- UI must not hardcode Voltaic logic
+- analysis logic must be testable outside React components
