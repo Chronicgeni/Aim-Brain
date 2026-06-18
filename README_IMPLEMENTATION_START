@@ -1,0 +1,91 @@
+# Implementation Start Guide
+
+Use this after the documentation pack is added to the GitHub repo.
+
+---
+
+## What To Tell Codex First
+
+Paste this:
+
+```text
+Read AGENTS.md and docs/CODEX_START_HERE.md.
+
+Important: follow the implementation lock.
+
+Read:
+- docs/implementation/MVP_SCOPE_LOCK.md
+- docs/implementation/TECH_STACK_LOCK.md
+- docs/implementation/CODEX_EXECUTION_ORDER.md
+- docs/implementation/DATABASE_MIGRATIONS_PLAN.md
+- docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md
+- docs/DECISIONS_ADDENDUM_005_IMPLEMENTATION_LOCK.md
+
+Do not write code yet.
+
+First summarize:
+1. product identity
+2. MVP scope
+3. selected stack
+4. source-first benchmark system
+5. data safety rules
+6. what real samples are still missing
+7. the safest first implementation task
+
+Then propose only Stage 1 and Stage 2.
+```
+
+---
+
+## What The Correct Codex Answer Should Say
+
+Codex should say something like:
+
+```text
+Aim Brain is a local-first automatic aim-training coach desktop app.
+The first build should not be a spreadsheet or Voltaic-only tracker.
+The first implementation should scaffold Tauri + React + TypeScript + Rust + SQLite, then add database migrations and core types.
+Benchmark definitions use a source-first adapter system, not an Aim Brain-only pack system.
+Real Aimlabs/KovaaK's parser completeness requires real sample files.
+```
+
+If Codex instead starts building random UI, stop it.
+
+---
+
+## First Coding Task
+
+After Codex summarizes correctly:
+
+```text
+Implement Stage 1: project scaffold.
+Do not add coach logic yet.
+Do not add fake imports.
+Create the folder structure and test setup.
+```
+
+Then:
+
+```text
+Implement Stage 2: SQLite migration foundation.
+```
+
+---
+
+## Copy-Paste Prompt Sequence
+
+For the first build steps, use:
+
+```text
+docs/implementation/FIRST_5_CODEX_PROMPTS.md
+```
+
+This file contains controlled prompts for:
+1. read and summarize docs
+2. scaffold app
+3. add database migrations
+4. add benchmark source types/validator
+5. add engine core tests and progress-only analysis
+
+Use these prompts in order.
+
