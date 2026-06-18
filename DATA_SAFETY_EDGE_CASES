@@ -1,0 +1,198 @@
+# Data Safety Edge Cases
+
+Aim Brain must be boringly safe with user data.
+
+The app reads trainer files and writes only to its own database/app data folder.
+
+---
+
+## Non-Negotiable Rule
+
+Never modify Aimlabs or KovaaK's source files.
+
+Aim Brain is read-only toward trainer data.
+
+---
+
+## File Read Safety
+
+When reading a source file:
+
+1. get file metadata
+2. read file contents
+3. hash contents
+4. parse contents
+5. import through transaction
+6. store import report
+
+If file changes during read:
+- detect mismatch if possible
+- stop import
+- show "file changed during import"
+- retry later
+
+---
+
+## Duplicate Import
+
+If user imports same file twice:
+
+Expected:
+- file hash already exists
+- show skipped duplicate
+- do not create duplicate raw runs
+
+If user forces reimport:
+- create new import batch
+- mark reason
+- avoid duplicate accepted raw runs unless explicitly allowed
+
+---
+
+## Partial Import Crash
+
+If app crashes during import:
+
+Expected:
+- database transaction rolls back incomplete accepted runs
+- failed batch is marked or recoverable
+- app shows recovery message on next launch
+
+Do not leave invisible half-imports.
+
+---
+
+## Bad / Unknown Data
+
+If parser cannot understand a row/run:
+
+Expected:
+- create review item
+- do not drop silently
+- show reason
+
+Reasons:
+- missing score
+- invalid timestamp
+- unknown scenario
+- duplicate uncertainty
+- impossible value
+- unsupported platform
+- ambiguous scenario match
+
+---
+
+## Timestamp Problems
+
+If timestamp is missing:
+
+- allow import
+- mark occurred_at as null
+- use imported_at for display fallback
+- review if needed
+- do not invent exact play time
+
+If timezone is unclear:
+
+- preserve original raw timestamp
+- normalize if reliable
+- store raw payload
+
+---
+
+## Scenario Matching Problems
+
+If exact match fails:
+
+1. normalized name match
+2. alias match
+3. fuzzy suggestion
+4. manual review
+
+If multiple matches exist:
+- send to review
+- let user choose
+- save override
+
+---
+
+## Benchmark Definition Changes
+
+When a benchmark definition updates:
+
+- raw runs stay unchanged
+- analysis can be recalculated
+- old source metadata remains visible
+- show if results changed because thresholds changed
+
+Do not silently rewrite history.
+
+---
+
+## Database Corruption
+
+If database cannot open:
+
+- do not delete it
+- create diagnostic message
+- offer backup/export if possible
+- create new empty DB only after user confirmation
+- keep corrupted file for manual recovery
+
+---
+
+## Migration Failure
+
+Before risky migration:
+- make backup copy
+- apply migration
+- verify database opens
+- if fail, restore backup or show recovery option
+
+---
+
+## User Privacy
+
+Default:
+- no cloud upload
+- no telemetry
+- no account requirement
+- no public sharing
+
+If any online feature is added later:
+- opt-in
+- explain what data is sent
+- allow disabling
+
+---
+
+## External Benchmark Source Safety
+
+For source adapters:
+
+- no private scraping
+- no bypassing login
+- no hidden API dependency
+- public sources only unless user provides file/export
+- store source metadata
+- show official/community/unknown status
+- do not silently auto-update definitions
+
+---
+
+## Diagnostics Export
+
+Add later:
+
+```text
+Export diagnostics
+```
+
+Should include:
+- app version
+- database schema version
+- import batch logs
+- parser errors
+- source validation errors
+
+Should not include sensitive personal data unless user explicitly includes it.
