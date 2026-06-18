@@ -1,0 +1,2140 @@
+# Aim Brain Codex Master Doc
+
+This is the phone-friendly single-file version of the Aim Brain / Codex project docs. Use this if downloading ZIP files is difficult on mobile.
+
+Copy this file into your GitHub repo as `docs/AIM_BRAIN_MASTER_DOC.md`, or paste its contents into Codex before starting.
+
+---
+
+# 1. Product Identity
+
+## Final app name
+
+The app is named:
+
+```text
+Aim Brain
+```
+
+Older names like Aim Training Control Center / ATCC are historical only. New UI, docs, and code should use **Aim Brain**.
+
+## One-sentence vision
+
+```text
+Aim Brain automatically imports aim-training data, stores clean raw runs locally, analyzes progress, and tells the user what to train next.
+```
+
+## What Aim Brain is
+
+Aim Brain is:
+
+- an automatic aim-training coach desktop app
+- local-first
+- automatic-import-first
+- raw-run based
+- coach-focused
+- customizable
+- low performance impact
+
+It should help the user become a better aimer, not just collect statistics.
+
+## What Aim Brain is not
+
+Aim Brain is not:
+
+- a spreadsheet replacement
+- a manual score logger
+- a Voltaic clone
+- an EVXL clone
+- only a benchmark browser
+- only a leaderboard viewer
+- only a stats dashboard
+- a cloud-first social platform
+- a noisy notification app
+
+Tables, charts, and benchmark data can exist, but they support the coach system. They are not the product identity.
+
+## Product promise
+
+Aim Brain should make the user feel:
+
+```text
+My training is being captured.
+My progress is being understood.
+My weak points are clear.
+My next session has a purpose.
+```
+
+---
+
+# 2. Non-Negotiable Rules
+
+## Rule 1: No manual score logging as the main workflow
+
+Manual correction is allowed. Manual file import is allowed. Review queue actions are allowed.
+
+But the app must not be built around manually typing scenario, score, date, and accuracy after every run.
+
+## Rule 2: Raw runs are the source of truth
+
+Every individual run should be stored as a raw record.
+
+PBs, averages, rolling trends, readiness, summaries, and coach notes must be derived from raw run history whenever possible.
+
+Do not design the app around storing only PBs, averages, or rank snapshots.
+
+## Rule 3: Never modify Aimlabs or KovaaK's source files
+
+Importers must never write to, delete, rename, move, or alter source files from aim trainers.
+
+Safe importer rule:
+
+```text
+Read source data.
+Copy it if needed.
+Parse the copy.
+Store imported data in Aim Brain.
+Never mutate the source.
+```
+
+## Rule 4: Local-first by default
+
+Training data should be stored locally by default.
+
+Cloud sync, accounts, public profiles, telemetry, and sharing are future optional features, not MVP requirements.
+
+## Rule 5: All imports go through a safety pipeline
+
+```text
+Source file/database
+↓
+Importer
+↓
+Import batch
+↓
+Staging queue
+↓
+Validation
+↓
+Duplicate detection
+↓
+Scenario matching
+↓
+Raw run database
+↓
+Analytics/coach engine
+```
+
+Suspicious data goes to review. Do not silently delete uncertain records.
+
+## Rule 6: Simple by default, powerful when customized
+
+Default UI should show only what helps improvement.
+
+Power users should be able to customize themes, dashboard cards, widgets, workspaces, summaries, feedback level, notifications, and goals.
+
+## Rule 7: The app must not be noisy
+
+The app should analyze silently and show summaries only at the user's selected feedback level.
+
+Feedback modes:
+
+```text
+Off / Minimal / Normal / Detailed / Custom
+```
+
+## Rule 8: Low performance impact
+
+Aim Brain must not hurt aim-training performance.
+
+Avoid:
+
+- constant heavy folder scans
+- real-time OCR as core workflow
+- popups during gameplay unless enabled
+- expensive charting while training
+- blocking UI
+- busy loops
+
+Prefer:
+
+- file watchers with debounce
+- startup scans
+- import after session
+- cached dashboard summaries
+- lazy-loaded charts
+- Gaming Mode / Low-Impact Mode
+
+---
+
+# 3. Preferred Technical Direction
+
+Unless there is a strong reason to change:
+
+```text
+Desktop app: Tauri
+Backend/core: Rust
+Frontend: React or equivalent web UI
+Database: SQLite
+Architecture: local-first
+```
+
+SQLite should use:
+
+- migrations
+- foreign keys
+- indexes
+- raw run records as foundation
+- import batch audit trail
+- review queue
+
+---
+
+# 4. Import Engine Direction
+
+The import engine is the foundation of Aim Brain. If imported data is wrong, every chart, summary, and coach recommendation becomes untrustworthy.
+
+## Import priorities
+
+1. Aimlabs advanced local data importer
+2. Aimlabs Task Data JSON export importer
+3. KovaaK's local files / CSV / stats folder importer
+4. OCR / screenshot reading only as experimental backup
+
+## Aimlabs local path found by user
+
+The user found a likely Aimlabs Task Data path similar to:
+
+```text
+C:/Users/<WindowsUser>/AppData/LocalLow/Statespace/aimlab_tb/...
+```
+
+The user's actual path uses their Windows username, but code must not hard-code it.
+
+The user currently believes:
+
+- data may be organized by date
+- files may be JSON
+- user may need to click something like Download Data manually
+- the path appears related to Aimlabs Task Data
+
+## Voltaic-updater-style direction
+
+Aimlabs data handling should work similarly in spirit to a local auto-updater approach like the Voltaic Progress Sheet Updater:
+
+```text
+Watch or read local aim-trainer data.
+Detect new results.
+Update the app automatically.
+Avoid manual score entry.
+```
+
+This does **not** mean copying code blindly.
+
+Do not depend on Voltaic Progress Sheet Updater as a required runtime dependency. Use the architecture idea as inspiration.
+
+## Importer product behavior
+
+Ideal:
+
+```text
+Open Aim Brain.
+Aim Brain checks Aimlabs data source.
+User trains in Aimlabs.
+Aim Brain detects new data if possible.
+Aim Brain imports new runs.
+Aim Brain skips duplicates.
+Aim Brain shows session summary if enabled.
+```
+
+Fallback:
+
+```text
+User clicks Download Data in Aimlabs.
+Aim Brain sees the new JSON export.
+Aim Brain imports it automatically.
+```
+
+Still no manual score typing.
+
+## Recommended importer modules
+
+```text
+AimlabsSourceLocator
+AimlabsFileWatcher
+AimlabsSafeFileCopier
+AimlabsSchemaDetector
+AimlabsParser
+ImportBatchService
+ImportStagingService
+DuplicateDetector
+ScenarioMatcher
+RawRunWriter
+ImportStatusService
+```
+
+### AimlabsSourceLocator
+
+Responsibilities:
+
+- check common Aimlabs paths
+- allow manual folder selection
+- verify folder exists
+- detect likely data files
+- save selected source folder
+
+### AimlabsFileWatcher
+
+Responsibilities:
+
+- watch selected folder
+- detect new/changed files
+- debounce changes
+- avoid aggressive scanning
+- allow manual rescan
+- support startup scan
+
+### AimlabsSafeFileCopier
+
+Responsibilities:
+
+- copy source file to app cache/temp before parsing
+- avoid locking Aimlabs files
+- preserve source hash
+- handle file-in-use errors gracefully
+
+### AimlabsSchemaDetector
+
+Responsibilities:
+
+- determine file type
+- detect JSON vs SQLite vs unknown
+- detect schema version if available
+- route to correct parser
+
+### AimlabsParser
+
+Responsibilities:
+
+- parse copied source file
+- extract normalized run records
+- preserve unknown safe fields in raw payload
+- never assume unavailable fields
+- fail clearly if schema is unknown
+
+### ImportBatchService
+
+Responsibilities:
+
+- create import batch
+- track source path/hash
+- track importer version
+- count found/imported/skipped/review records
+- store errors
+
+### ImportStagingService
+
+Responsibilities:
+
+- insert parsed records into staging first
+- validate required fields
+- mark missing/invalid fields
+- prepare for duplicate detection
+
+### DuplicateDetector
+
+Responsibilities:
+
+- detect same run imported twice
+- use source run ID if available
+- otherwise hash stable fields
+- classify exact/probable/possible/not duplicate
+- skip exact duplicates
+- review uncertain duplicates
+
+### ScenarioMatcher
+
+Responsibilities:
+
+- match imported scenario names to canonical scenarios
+- use saved aliases
+- avoid blind fuzzy merging
+- send uncertain matches to review
+- save user-confirmed aliases
+
+### RawRunWriter
+
+Responsibilities:
+
+- move valid matched non-duplicate staging records into raw_runs
+- preserve original scenario name
+- preserve source metadata
+- keep raw runs immutable where practical
+
+### ImportStatusService
+
+Responsibilities:
+
+- expose current importer status to UI
+- show last scan, source, imported count, skipped duplicates, review needed, and errors
+
+## Required fields for first working import
+
+Minimum:
+
+- scenario/task name
+- score
+- timestamp
+
+If these exist, the first engine can work.
+
+Useful:
+
+- accuracy
+- duration
+- hits
+- misses
+- task ID
+- run ID
+- playlist
+- rank
+- benchmark info
+
+Advanced:
+
+- overshoot
+- undershoot
+- reaction time
+- time to target
+- correction count
+- error distance
+
+## Overshoot / undershoot handling
+
+If Aimlabs provides undershoot/overshoot data, store it as optional diagnostics.
+
+Do not make the app depend on it.
+
+Use it for better coach notes:
+
+```text
+High overshoot = stopping/braking/control problem.
+High undershoot = hesitation/commitment/late acquisition problem.
+```
+
+Compare against:
+
+- user's own history
+- same scenario
+- same category
+- same platform
+- same difficulty if available
+
+Avoid generic claims like:
+
+```text
+20% overshoot is bad.
+```
+
+Prefer:
+
+```text
+Your overshoot rate is higher than your usual rate in this scenario.
+```
+
+---
+
+# 5. Aimlabs Import Research Questions
+
+Before building the real parser, inspect real files or redacted samples.
+
+## Must discover
+
+1. Exact folder structure
+2. Exact file names
+3. Whether files are created automatically or only after export
+4. Whether files are overwritten or appended
+5. Whether data is JSON, CSV, SQLite, binary, or mixed
+6. Whether it updates after every run, after closing Aimlabs, or only after clicking Download Data
+7. Whether old runs are included or only recent/exported runs
+8. Whether runs have unique IDs
+9. Whether timestamps include timezone/milliseconds
+10. Whether score and accuracy are numbers or strings
+11. Whether overshoot/undershoot exists
+12. Whether schema changes between exports
+
+## Redaction rules for samples
+
+Before committing sample files, remove or replace:
+
+- username
+- email
+- account IDs
+- Steam/Discord IDs
+- exact local username
+- full personal file paths
+- IP addresses
+- tokens
+- access keys
+- private profile links
+
+Keep:
+
+- field names
+- structure
+- fake/example values
+- representative run rows
+- timestamp format
+
+Expected sample:
+
+```text
+samples/aimlabs/example_task_data.redacted.json
+```
+
+---
+
+# 6. Database Schema Direction
+
+The database should be SQLite and local-first.
+
+Principle:
+
+```text
+Raw runs are the source of truth.
+Aggregates are derived.
+```
+
+Recommended SQLite settings:
+
+```sql
+PRAGMA foreign_keys = ON;
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+```
+
+Use migrations and indexes.
+
+## MVP tables
+
+### platforms
+
+Fields:
+
+- id
+- code: `aimlabs`, `kovaaks`, `manual_file`, etc.
+- name
+- created_at
+
+### import_batches
+
+One row per import operation.
+
+Fields:
+
+- id
+- source_type
+- source_path
+- source_hash
+- importer_name
+- importer_version
+- started_at
+- finished_at
+- status
+- records_found
+- records_imported
+- records_skipped
+- records_needing_review
+- error_message
+
+### import_staging_records
+
+Temporary parsed records before final insertion.
+
+Fields:
+
+- id
+- import_batch_id
+- source_record_id
+- source_row_hash
+- raw_payload_json
+- parsed_payload_json
+- validation_status
+- duplicate_status
+- scenario_match_status
+- review_status
+- error_message
+- created_at
+
+### raw_runs
+
+Canonical raw run history.
+
+Fields:
+
+- id
+- platform_id
+- scenario_id
+- import_batch_id
+- source_type
+- source_run_id
+- source_hash
+- original_scenario_name
+- started_at
+- completed_at
+- duration_seconds
+- score
+- score_unit
+- accuracy
+- hits
+- misses
+- kills
+- deaths
+- rank_name
+- benchmark_set_id
+- setup_id
+- review_status
+- is_valid
+- created_at
+- updated_at
+
+### run_diagnostics
+
+Optional extra movement/error data.
+
+Fields:
+
+- id
+- raw_run_id
+- overshoot_count
+- undershoot_count
+- overshoot_pct
+- undershoot_pct
+- avg_error_distance
+- reaction_time_ms
+- time_to_target_ms
+- correction_count
+- raw_diagnostics_json
+
+### scenarios
+
+Fields:
+
+- id
+- platform_id
+- canonical_name
+- category_id
+- mechanic
+- difficulty
+- vendor_task_id
+- benchmark_set_id
+- is_benchmark
+- is_obsolete
+- created_at
+
+### scenario_aliases
+
+Fields:
+
+- id
+- scenario_id
+- platform_id
+- alias_name
+- normalized_alias
+- match_mode
+- confidence
+- confirmed_by_user_at
+- created_at
+
+### categories
+
+Initial categories:
+
+- Static Clicking
+- Dynamic Clicking
+- Smooth Tracking
+- Reactive Tracking
+- Speed Switching
+- Evasive Switching
+- Hybrid/Other
+
+Fields:
+
+- id
+- code
+- name
+- color_token
+- description
+
+### sessions
+
+Fields:
+
+- id
+- started_at
+- ended_at
+- source
+- total_runs
+- total_duration_seconds
+- notes
+- created_at
+
+### settings
+
+Fields:
+
+- key
+- value_json
+- updated_at
+
+Used for:
+
+- summary mode
+- theme
+- dashboard layout
+- selected data folders
+- importer settings
+- notification preferences
+
+## Later tables
+
+- setups
+- benchmark_sets
+- threshold_entries
+- summaries
+- run_corrections
+
+---
+
+# 7. Duplicate Detection
+
+Duplicate runs are the same training attempt imported more than once.
+
+This can happen when:
+
+- user re-imports the same JSON
+- app rescans the same folder
+- Aimlabs rewrites/export files
+- app restarts and scans old files
+- two import methods see the same run
+
+Compare:
+
+- platform
+- source-specific run ID if available
+- scenario/task identifier
+- normalized scenario name
+- score
+- timestamp
+- duration
+- accuracy
+- source file hash
+- source row hash
+
+Duplicate confidence:
+
+```text
+exact_duplicate
+probable_duplicate
+possible_duplicate
+not_duplicate
+```
+
+Exact duplicates can be skipped automatically. Uncertain duplicates go to review.
+
+Do not silently delete raw runs.
+
+---
+
+# 8. Scenario Matching
+
+Imported names may differ from canonical names.
+
+States:
+
+```text
+matched
+probably_matched
+unmatched
+needs_user_confirmation
+```
+
+When user confirms a match, save an alias so the app does not ask again.
+
+Never blindly merge similar names if platform, version, or difficulty may differ.
+
+Example variants:
+
+```text
+VT Air Angelic 4
+Kovaak VT Air Angelic 4
+VT Air Angelic 4 Easy
+VT Air Angelic 4 - Aimlabs
+```
+
+---
+
+# 9. Coach Engine
+
+The coach engine is the product's main differentiator.
+
+It should answer:
+
+```text
+What is holding me back?
+Why is it happening?
+What should I train next?
+How will I know if it worked?
+```
+
+## Coach inputs
+
+Required:
+
+- raw runs
+- scenario
+- category
+- score
+- timestamp
+
+Useful:
+
+- accuracy
+- duration
+- hits/misses
+- PB
+- last-5 average
+- last-10 average
+- last-20 average
+- rolling trend
+- training volume
+- category balance
+- rank thresholds
+
+Advanced optional:
+
+- overshoot
+- undershoot
+- reaction time
+- correction count
+- time to target
+- setup data
+- sleep/mood/manual tags
+- warmup status
+- session order
+- FPS/performance data
+
+The engine must degrade gracefully if optional data is missing.
+
+## First coach should be rule-based
+
+Start with explicit rules.
+
+Every recommendation should have:
+
+- trigger
+- explanation
+- suggested action
+- confidence
+- data used
+
+Do not start with a black-box AI coach.
+
+## Core coach rules
+
+### PB improved, average did not
+
+Trigger:
+
+- new PB
+- last-10 average flat or down
+
+Meaning:
+
+- peak improved
+- repeatability not proven
+
+Coach note:
+
+```text
+You hit a new peak, but your last-10 average did not move much.
+Treat this as potential, not stable progress yet.
+Next session should focus on repeatability.
+```
+
+### Average improved without PB
+
+Trigger:
+
+- no PB
+- last-10 or rolling average improved
+
+Meaning:
+
+- real skill floor improved
+
+Coach note:
+
+```text
+No new PB, but your average improved.
+This is strong progress because your normal level is rising.
+```
+
+### Weak category + low volume
+
+Trigger:
+
+- category below goal
+- category trained less than others recently
+
+Meaning:
+
+- likely underexposure
+
+Coach note:
+
+```text
+This category is weak and undertrained.
+Add focused volume before changing technique.
+```
+
+### Weak category + high volume
+
+Trigger:
+
+- category below goal
+- category trained a lot recently
+- trend flat
+
+Meaning:
+
+- technique issue, wrong difficulty, fatigue, or bad drill selection
+
+Coach note:
+
+```text
+You are training this category, but it is not moving.
+Lower the difficulty, change scenario, or focus on one technical mistake.
+```
+
+### Decay / freshness warning
+
+Trigger:
+
+- no recent runs in category for configurable period, e.g. 7+ days
+
+Coach note:
+
+```text
+You have not trained this category recently.
+Add a short maintenance block before it becomes a bigger weakness.
+```
+
+### Fatigue pattern
+
+Trigger:
+
+- early runs above average
+- later runs repeatedly drop
+- accuracy or score trend falls late session
+
+Coach note:
+
+```text
+Your performance dropped late in the session.
+Shorter blocks or earlier stopping may give better quality practice.
+```
+
+### Plateau risk
+
+Trigger:
+
+- high volume
+- flat rolling average
+- no meaningful PB/average movement
+
+Coach note:
+
+```text
+This looks like a plateau.
+Change one variable: difficulty, scenario, focus, rest, or session length.
+```
+
+### Overshoot dominant
+
+Trigger:
+
+- overshoot rate unusually high versus user's own history for same scenario/category
+
+Meaning:
+
+- poor stopping control, too much aggression, tension, braking issue
+
+### Undershoot dominant
+
+Trigger:
+
+- undershoot rate unusually high versus user's own history
+
+Meaning:
+
+- hesitation, slow commitment, low initial speed, late target read
+
+---
+
+# 10. Category Coaching Notes
+
+## Static Clicking
+
+Trains:
+
+- precision
+- target acquisition
+- stopping power
+- click timing
+- microcorrection
+
+Weakness signs:
+
+- overflicking
+- shaky microcorrections
+- clicking before stable
+- slow target acquisition
+- low first-shot accuracy
+
+Suggestions:
+
+- slow down enough to land on target
+- focus on stop-before-click
+- use smaller controlled movements
+- avoid panic clicking
+
+## Dynamic Clicking
+
+Trains:
+
+- moving target reads
+- click timing under motion
+- target prediction
+- smooth approach
+
+Weakness signs:
+
+- chasing the target
+- poor lead
+- panic clicks
+- late click timing
+- inconsistent rhythm
+
+Suggestions:
+
+- track briefly before clicking
+- prioritize timing over raw speed
+- use easier moving target variants if needed
+
+## Smooth Tracking
+
+Trains:
+
+- continuous control
+- smoothness
+- tension management
+- matching velocity
+
+Weakness signs:
+
+- jitter
+- falling behind target
+- overcorrecting
+- inconsistent pressure
+- losing smoothness after direction changes
+
+Suggestions:
+
+- relax grip
+- match target velocity
+- use longer controlled runs
+- avoid overcorrecting
+
+## Reactive Tracking
+
+Trains:
+
+- direction-change reading
+- braking
+- reaction
+- correction speed
+
+Weakness signs:
+
+- late reactions
+- overshooting direction changes
+- losing target after dodge
+- guessing direction too early
+
+Suggestions:
+
+- focus on staying centered
+- react to changes, do not wildly predict
+- choose difficulty where control remains possible
+
+## Speed Switching
+
+Trains:
+
+- fast target acquisition
+- transition speed
+- pathing
+- rhythm
+
+Weakness signs:
+
+- hesitation
+- bad pathing
+- overshooting transitions
+- slow confirmation
+
+Suggestions:
+
+- clean target order
+- reduce wasted pathing
+- gradually raise speed
+- maintain confirmation before click
+
+## Evasive Switching
+
+Trains:
+
+- switching plus moving/evasive target control
+- mixed tracking and clicking
+- visual read under complexity
+
+Weakness signs:
+
+- panic
+- losing target during transition
+- poor first confirmation
+- overflicking into moving targets
+
+Suggestions:
+
+- slow down first shot
+- confirm target before committing
+- strengthen dynamic clicking and reactive tracking base
+
+---
+
+# 11. Readiness Score
+
+Readiness should not be only PB-based.
+
+Components:
+
+- PB readiness
+- last-10 average readiness
+- consistency readiness
+- category balance
+- recent activity/freshness
+- confidence score
+
+Example:
+
+```text
+Master Readiness: 74%
+PB Readiness: 82%
+Consistency Readiness: 68%
+Weakest blocker: Reactive Tracking
+Main issue: last-10 average is below target
+```
+
+---
+
+# 12. Session Summary System
+
+Core rule:
+
+```text
+Save every run.
+Analyze silently.
+Summarize only when useful.
+Show summaries only at the user's chosen feedback level.
+```
+
+## Summary increments
+
+### Every run
+
+Save silently.
+
+Allowed small events:
+
+- new PB popup if enabled
+- import error
+- suspicious duplicate
+- unknown scenario
+- review needed
+
+### Every 5-10 runs
+
+Update block stats quietly.
+
+### Scenario block summary
+
+Triggers:
+
+- 5+ runs on same scenario
+- or 8-12 minutes on same scenario
+- or user switches scenario
+- or end of session
+
+Example:
+
+```text
+VT Air Angelic 4 block summary
+
+Runs: 8
+Best: 842
+Average: 811
+Last-5 average: 824
+PB: yes, +2.8%
+
+Coach note:
+Your best score improved, but the average moved only slightly.
+Good peak, not stable yet.
+```
+
+### Category summary
+
+Triggers:
+
+- 15-30 minutes in one category
+- or 2+ scenarios from same category
+- or end of session
+
+### Full session summary
+
+Default session detection:
+
+- session starts when first run is imported
+- session ends after 15-20 minutes with no new runs
+- or when Aimlabs/KovaaK's closes if detectable
+- or when user presses End Session
+
+Example:
+
+```text
+Session imported: 42 runs
+
+Time trained: 54 minutes
+Categories trained: 3
+New PBs: 4
+Best category: Reactive Tracking
+Weakest category today: Dynamic Clicking
+Most improved scenario: VT Air Angelic 4
+Consistency: 78%
+Fatigue trend: mild drop near the end
+
+Coach note:
+You improved your peaks today, but your last-10 averages were unstable.
+Next session should focus on controlled repeatability, not PB chasing.
+```
+
+### Daily summary
+
+Combines multiple sessions in one calendar day.
+
+### Weekly coach report
+
+Default trigger:
+
+- every 7 days
+- or after at least 3 training days
+- user configurable
+
+### Monthly review
+
+Longer-term progress review.
+
+---
+
+# 13. Feedback / Summary Modes
+
+Feedback modes:
+
+```text
+Off
+Minimal
+Normal
+Detailed
+Custom
+```
+
+## Off
+
+No automatic summaries shown. The app still logs runs and updates stats.
+
+## Minimal
+
+Only important summaries:
+
+- end of session
+- weekly report
+- major PB/milestone alerts if enabled
+
+## Normal
+
+Default:
+
+- optional scenario block summaries
+- end-of-session summary
+- daily summary
+- weekly report
+
+## Detailed
+
+For users who want more feedback:
+
+- scenario summaries
+- category summaries
+- session summaries
+- daily summaries
+- weekly reports
+- monthly reviews
+- more coach notes
+
+## Custom
+
+User toggles each type individually:
+
+- Scenario block summary
+- Category summary
+- Session summary
+- Daily summary
+- Weekly coach report
+- Monthly review
+- PB popup
+- Coach recommendation popup
+- Goal alert
+- Import issue alert
+
+## Quiet mode while training
+
+When enabled:
+
+- no popups during active training
+- summaries wait until session ends
+- critical import errors can still be shown quietly
+- PBs can be stored silently
+
+---
+
+# 14. UI Direction
+
+The UI should be inspired by the general feel of an aim benchmark tracker like EVXL, but cleaner, more coherent, and more user friendly.
+
+This does **not** mean copying EVXL exactly.
+
+Use EVXL only as a broad reference for:
+
+- aim benchmark/tracker structure
+- readable rank/progress cards
+- scenario browsing
+- compact progress surfaces
+- aim-training-specific navigation
+
+Aim Brain must have its own identity.
+
+## Main UI goal
+
+Aim Brain should look like a modern aim-training command center, but behave like a coach.
+
+The UI should prioritize:
+
+```text
+What changed?
+What matters?
+What should I do next?
+```
+
+Not:
+
+```text
+Here is every stat we can show.
+```
+
+## Visual direction
+
+Preferred:
+
+- dark theme by default
+- clean card-based layout
+- left sidebar navigation
+- strong spacing
+- clear hierarchy
+- readable typography
+- consistent icons
+- subtle borders
+- soft rounded cards
+- restrained accent colors
+- strong empty states
+- fast search
+- category color coding
+
+Avoid:
+
+- spreadsheet-like tables on the home page
+- too many tabs
+- giant dense tables as default view
+- visual clutter
+- random graph dashboards
+- confusing benchmark jargon without explanation
+- copying EVXL's exact layout, branding, or styling
+
+## Navigation
+
+Recommended screens:
+
+```text
+Home
+Coach
+Progress
+Scenarios
+History
+Import
+Settings
+```
+
+Possible later screens:
+
+```text
+Setup Tracking
+Weekly Review
+Data / Review Queue
+Knowledge Base
+```
+
+## Home
+
+Purpose:
+
+```text
+Tell the user what matters right now.
+```
+
+Default Home cards:
+
+- Today's Focus
+- Last Session Summary
+- Main Weak Link
+- Goal / Rank Readiness
+- Recent PBs
+- Recommended Next Session
+- Import Status
+
+Home must not become a table dump.
+
+## Coach
+
+Purpose:
+
+```text
+Explain weaknesses and recommend training.
+```
+
+Should show:
+
+- main blocker
+- why it matters
+- next best action
+- confidence level
+- category notes
+- recent coach findings
+
+## Progress
+
+Purpose:
+
+```text
+Show long-term improvement.
+```
+
+Should show:
+
+- category trends
+- PB timeline
+- last-10 averages
+- weekly progress
+- readiness over time
+- consistency
+
+## Scenarios
+
+Purpose:
+
+```text
+Search and inspect scenarios.
+```
+
+Should show:
+
+- scenario search
+- category filters
+- played/unplayed filter
+- platform filter
+- PB
+- average
+- last-10
+- rank/progress if benchmark data exists
+
+This can be more table-like than Home, but it should still feel like an app, not a spreadsheet.
+
+## History
+
+Purpose:
+
+```text
+Review sessions and raw runs.
+```
+
+Raw tables belong here, not on Home.
+
+## Import
+
+Purpose:
+
+```text
+Make automatic import transparent and trustworthy.
+```
+
+Should show:
+
+- Aimlabs importer status
+- source folder
+- last scan
+- new runs imported
+- duplicates skipped
+- review needed
+- errors
+- fallback JSON import option
+
+## Settings
+
+Should include:
+
+- data source folders
+- feedback mode
+- summary toggles
+- theme
+- dashboard customization
+- Gaming Mode
+- backup/export
+
+## Default Home conceptual example
+
+```text
+┌─────────────────────────────────────────────┐
+│ Aim Brain                                   │
+│ Last import: 42 runs · 2 PBs · 0 errors      │
+├─────────────────────────────────────────────┤
+│ Today's Focus                               │
+│ Dynamic Clicking consistency                │
+│ Reason: PB improved, last-10 average flat    │
+├─────────────────────┬───────────────────────┤
+│ Main Weak Link      │ Goal Readiness         │
+│ Evasive Switching   │ Master: 74%            │
+├─────────────────────┴───────────────────────┤
+│ Last Session Summary                         │
+│ Strong start, mild fatigue after 40 minutes  │
+├─────────────────────────────────────────────┤
+│ Recommended Next Session                     │
+│ 2 Dynamic Clicking blocks + 1 Tracking warmup│
+└─────────────────────────────────────────────┘
+```
+
+## Category colors
+
+Use consistent category colors:
+
+- Static Clicking: salmon/red
+- Dynamic Clicking: yellow
+- Smooth Tracking: ocean blue
+- Reactive Tracking: dark blue
+- Speed Switching: violet
+- Evasive Switching: blurple
+- Hybrid/Other: grey
+
+These should be design tokens, not hard-coded random colors.
+
+---
+
+# 15. UI Customization
+
+Customization is core, but it must not make the app confusing.
+
+Core UI philosophy:
+
+```text
+Simple by default.
+Powerful when customized.
+```
+
+## UI modes
+
+### Simple
+
+Shows:
+
+- current goal
+- weak link
+- next recommendation
+- recent progress
+- import status
+
+Hides:
+
+- advanced charts
+- raw tables
+- detailed confidence model
+- custom weights
+
+### Balanced
+
+Default.
+
+Shows:
+
+- Home
+- Coach
+- Progress
+- Scenarios
+- History
+- Settings
+- useful charts
+- session summaries
+
+### Advanced
+
+Shows:
+
+- deeper analytics
+- raw run history
+- confidence scores
+- category breakdowns
+- filters
+- rank threshold details
+- setup filters
+
+### Custom
+
+User decides widget-by-widget.
+
+## Theme presets
+
+Initial:
+
+- Dark
+- Light
+- Coach
+- Competitive
+- Analytics
+- Minimal
+
+Later:
+
+- custom accent color
+- category color editor
+- rounded/sharp card preference
+- compact/comfortable density
+- theme editor
+
+## Workspaces
+
+### Coach Workspace
+
+- Today's Focus
+- Weak Link
+- Recommendation
+- Readiness
+- Session Summary
+
+### Competitive Workspace
+
+- Rank progress
+- PB timeline
+- milestones
+- benchmark readiness
+- category rank cards
+
+### Analytics Workspace
+
+- rolling averages
+- category trends
+- scenario tables
+- filters
+- confidence bands
+- raw run access
+
+### Review Workspace
+
+- weekly report
+- monthly report
+- plateau analysis
+- session history
+- training volume
+
+### Data Workspace
+
+- import status
+- review queue
+- raw runs
+- scenario aliases
+- duplicate records
+- source files
+
+---
+
+# 16. Data Safety
+
+Data safety is critical.
+
+Rules:
+
+1. Never write to Aimlabs or KovaaK's source files.
+2. Never delete source files.
+3. Never silently delete raw runs.
+4. Never silently merge uncertain scenarios.
+5. Never silently accept suspicious imports.
+6. Always allow import undo.
+7. Always keep an audit trail.
+8. Always allow data export.
+9. Keep data local by default.
+10. Redact personal data from samples.
+
+## Review queue reasons
+
+- duplicate possible
+- unknown scenario
+- impossible score
+- missing timestamp
+- malformed data
+- mismatched platform
+- unexpected schema
+- suspiciously large score jump
+
+## Review actions
+
+- accept
+- reject
+- merge with existing
+- assign scenario
+- create alias
+- ignore source record
+- mark as invalid
+
+---
+
+# 17. Performance Requirements
+
+Aim Brain must not hurt aim-training performance.
+
+## Idle
+
+- near-zero CPU
+- modest RAM usage
+- no constant heavy loops
+- no unnecessary network activity
+
+## While training
+
+- no heavy chart rendering
+- no expensive analytics loops
+- no noisy popups unless enabled
+- file watcher should be debounced
+- imports can wait until run/session ends if needed
+
+## After training
+
+- import new runs
+- calculate summaries
+- update dashboard
+- generate coach notes
+
+## Gaming Mode / Low-Impact Mode
+
+Gaming Mode should:
+
+- silence popups
+- reduce background work
+- delay heavy summaries
+- avoid chart updates during active training
+- keep only essential file watching
+- allow import after session
+
+Possible modes:
+
+- Normal
+- Low Impact
+- Import After Session Only
+- Manual Scan Only
+
+---
+
+# 18. Roadmap
+
+## MVP: Import + raw data foundation
+
+Goal:
+
+```text
+Prove that Aim Brain can safely import real Aimlabs run data,
+store it as raw runs,
+avoid duplicates,
+match scenarios,
+and generate a useful basic session summary.
+```
+
+MVP features:
+
+- Aimlabs local import research
+- Aimlabs local importer prototype if possible
+- Aimlabs JSON export importer fallback
+- user-selectable source folder
+- import batches
+- staging queue
+- validation
+- duplicate detection
+- review queue
+- SQLite setup
+- raw_runs table
+- import_batches table
+- import_staging_records table
+- scenarios table
+- scenario_aliases table
+- categories table
+- sessions table
+- settings table
+- PB/latest/last-5/last-10 analytics
+- simple weak-link coach
+- basic session summary
+- Home / Import Status / Session Summary / Scenario Detail / Settings UI
+
+MVP should not include:
+
+- full AI coach
+- OCR
+- cloud sync
+- social features
+- public leaderboards
+- 50 charts
+- custom formula builder
+- every benchmark ecosystem
+- mobile app
+- account system
+
+## V1: Usable daily app
+
+- stable Aimlabs importer
+- better scenario matching
+- saved aliases
+- category engine
+- dashboard cards
+- session history
+- daily summary
+- weekly coach report
+- summary toggles
+- customization presets
+- data export
+- automatic backups
+
+## V2: Coach engine upgrade
+
+- readiness score
+- rank conversion when benchmark thresholds exist
+- progress-only fallback for non-benchmark scenarios
+- plateau detection
+- decay/freshness model
+- training efficiency
+- goal simulator
+- category balance analysis
+- setup-aware filtering
+- session quality score
+- Explain This Page
+- info button for every widget
+- searchable knowledge base
+
+## V3: Advanced desktop product
+
+- KovaaK's importer
+- more benchmark packs
+- custom benchmark/rank systems
+- advanced setup tracking
+- advanced dashboard builder
+- custom workspaces
+- widget resizing
+- theme editor
+- command palette
+- optional cloud backup/sync only if wanted
+- release updater
+- signed builds
+- improved onboarding
+
+## Experimental
+
+- OCR/screenshot score capture
+- automatic scoreboard detection
+- game-specific transfer recommendations
+- AI-generated coach notes
+- social sharing
+- public profiles
+- cloud sync
+- mobile companion
+- overlay mode
+
+---
+
+# 19. Testing Strategy
+
+Importer and database tests matter more than UI polish.
+
+## Highest priority tests
+
+### Import parser tests
+
+- extracts scenario name
+- extracts score
+- extracts timestamp
+- handles missing optional fields
+- preserves unknown safe fields
+- fails clearly on invalid format
+
+### Duplicate detection tests
+
+- same source_run_id = exact duplicate
+- same scenario/score/timestamp = probable duplicate
+- same score but different timestamp = not duplicate or possible duplicate
+- re-import same file does not double-count runs
+
+### Scenario matching tests
+
+- exact alias matches
+- normalized name matches
+- unknown scenario becomes review item
+- similar but not identical names are not blindly merged
+
+### Database tests
+
+- migrations apply
+- foreign keys work
+- raw run inserted correctly
+- import batch links to runs
+- calculated stats derive from raw_runs
+
+### Analytics tests
+
+- PB calculation
+- latest score
+- last-5 average
+- last-10 average
+- trend calculation
+- category summary
+
+### Session summary tests
+
+- runs close in time are grouped
+- long gap creates new session
+- PB count in session
+- basic coach note generated from known pattern
+
+---
+
+# 20. Codex Task List
+
+Use small tasks. Do not ask Codex to build the whole app at once.
+
+## Task 001: Inspect repo and summarize
+
+Prompt:
+
+```text
+Read AGENTS.md and all files in /docs.
+Do not write code yet.
+Summarize the product direction, technical direction, and safest first coding step.
+Identify contradictions or missing information.
+```
+
+## Task 002: Create initial project skeleton
+
+Prompt:
+
+```text
+Create the initial project skeleton for Aim Brain using the agreed technical direction.
+Prefer Tauri + SQLite unless there is a clear blocker.
+Keep the app minimal.
+Do not implement manual score logging.
+Add placeholder modules for import, database, analytics, coach, and settings.
+```
+
+## Task 003: Define SQLite migrations
+
+Prompt:
+
+```text
+Create initial SQLite migrations based on the schema direction.
+Focus on MVP tables:
+platforms, import_batches, import_staging_records, raw_runs, scenarios, scenario_aliases, categories, sessions, settings.
+Add indexes for common queries.
+Add tests or schema validation if possible.
+```
+
+## Task 004: Build Aimlabs JSON parser for redacted sample
+
+Prompt:
+
+```text
+Build a parser for samples/aimlabs/example_task_data.redacted.json.
+The parser should output normalized run records.
+Do not assume fields not present in the sample.
+Preserve unknown safe fields in raw_payload.
+Add tests using the sample.
+```
+
+## Task 005: Import staging pipeline
+
+Prompt:
+
+```text
+Create the import staging pipeline.
+Parsed records should enter staging first, not raw_runs directly.
+Add validation status, duplicate status, scenario match status, and review status.
+```
+
+## Task 006: Duplicate detection
+
+Prompt:
+
+```text
+Implement duplicate detection for imported run records.
+Use source_run_id if present, otherwise hash stable fields like platform, scenario, timestamp, score, duration, and accuracy.
+Classify duplicates as exact, probable, possible, or not duplicate.
+Do not delete records silently.
+```
+
+## Task 007: Scenario matching basics
+
+Prompt:
+
+```text
+Implement basic scenario matching.
+Use exact normalized alias match first.
+If no match, mark as unmatched/needs review.
+Do not fuzzy-merge automatically yet.
+When user confirms an alias later, it should be stored in scenario_aliases.
+```
+
+## Task 008: Raw run insertion
+
+Prompt:
+
+```text
+Implement moving validated, non-duplicate, matched staging records into raw_runs.
+Keep original_scenario_name.
+Keep source metadata.
+Do not overwrite existing raw runs.
+```
+
+## Task 009: Basic analytics
+
+Prompt:
+
+```text
+Build basic analytics queries from raw_runs:
+latest score, PB, total runs, last-5 average, last-10 average, simple trend.
+Do not store these as source of truth.
+```
+
+## Task 010: Session detection and summary
+
+Prompt:
+
+```text
+Implement basic session grouping and session summary.
+Default: sessions end after 15-20 minutes with no new runs, or can be manually ended.
+Summary should include total runs, time trained, PB count, best scenario, weakest category if category data exists, and simple coach note.
+```
+
+## Task 011: Feedback settings
+
+Prompt:
+
+```text
+Implement settings for feedback mode:
+Off, Minimal, Normal, Detailed, Custom.
+Also define individual toggles for scenario, category, session, daily, weekly, monthly summaries, PB popups, coach notes, and goal alerts.
+No UI polish needed yet.
+```
+
+## Task 012: Basic UI shell
+
+Prompt:
+
+```text
+Create a minimal UI shell that is not spreadsheet-like.
+Screens:
+Home, Import Status, Session Summary, Scenarios, Settings.
+Home should show placeholder cards for Today's Focus, Last Session Summary, Main Weak Link, Readiness, Recent PBs, Recommended Next Session.
+```
+
+Current recommended first Codex task: **Task 001**.
+
+---
+
+# 21. Next Prompt for Codex
+
+Paste this into Codex after putting this file into the repo:
+
+```text
+Read docs/AIM_BRAIN_MASTER_DOC.md.
+Do not write code immediately.
+
+First summarize the updated direction:
+1. The app is officially called Aim Brain.
+2. The UI should be inspired by an aim benchmark tracker style like EVXL, but cleaner, more coherent, and more user-friendly.
+3. The app must not copy EVXL directly.
+4. The Home screen should be coach-first, not spreadsheet/table-first.
+5. Aimlabs data should be handled through a local/updater-style importer similar in spirit to the Voltaic Progress Sheet Updater approach.
+6. The importer should watch/read local data where possible, with JSON export fallback.
+7. Never modify Aimlabs files.
+8. No manual score logging as the main workflow.
+9. Raw runs are the source of truth.
+10. The first build priority is the importer engine, not UI polish.
+
+Then identify:
+- what files currently exist
+- what is missing
+- what the safest first coding task is
+- what assumptions need confirmation before coding the Aimlabs parser
+
+Do not build a giant app.
+Do not add cloud sync.
+Do not build a spreadsheet UI.
+Do not start with OCR.
+Do not build manual score entry as the core workflow.
+
+After the summary, propose one small implementation task only.
+```
+
+---
+
+# 22. Missing Inputs Needed Later
+
+Codex has enough to start correctly, but not enough to finish the full app.
+
+Still needed:
+
+1. Redacted Aimlabs JSON/local-data sample
+2. Exact Aimlabs schema/field names
+3. Confirmation whether overshoot/undershoot exists
+4. Real benchmark threshold data later
+5. More precise UI mockups later
+6. Actual GitHub repo/project skeleton
+
