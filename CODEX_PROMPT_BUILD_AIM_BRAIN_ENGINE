@@ -1,0 +1,59 @@
+# Codex Prompt — Build the Aim Brain Engine Properly
+
+Use this prompt when asking Codex to implement the real Aim Brain Engine.
+
+```text
+Build the Aim Brain Engine as a deterministic TypeScript logic layer separate from the UI.
+
+Goal:
+The app must become an actual coaching product, not only a dashboard. The UI should display analysis from the engine. React components must not contain analysis logic.
+
+Create or update this structure:
+
+src/engine/
+  types/
+  normalization/
+  scenarios/
+  ranks/
+  stats/
+  diagnosis/
+  recommendations/
+  coach/
+  index.ts
+
+Engine requirements:
+1. Accept raw score runs, scenario data, threshold data, user goal, setup profiles, and current date.
+2. Return one complete AimBrainResult object for the UI.
+3. Calculate latest score, PB, all-run average, last-5 average, last-10 average, total runs, consistency, confidence, and trend.
+4. Match scenarios using normalized names, aliases, platform, and safe fallback logic.
+5. Convert score to rank only when threshold data exists.
+6. For missing threshold data, return progress-only mode. Never invent ranks.
+7. Detect strongest category, weakest category, most neglected category, most inconsistent category, and closest-to-rank-up category.
+8. Detect plateau/decline/improvement only when enough recent data exists.
+9. Recommend a training session with priority categories, recommended scenarios, reasons, session structure, and success condition.
+10. Generate a rule-based coach summary from the engine output.
+
+Important architecture rules:
+- Do not put analysis logic in React components.
+- Do not use AI or random behavior for calculations.
+- Keep functions pure where possible.
+- Make the same input produce the same output.
+- Add sample data and tests for the core calculations.
+- Keep manual score entry as fallback/debug only. Product direction is local automatic importing.
+
+Start with a minimal but working engine. Do not overbuild. Implement the foundation first:
+- types
+- calculateScenarioStats
+- calculateCategoryStats
+- calculateRankProgress with missing-threshold fallback
+- detectWeakCategories
+- recommendTrainingSession
+- generateCoachSummary
+- analyzeAimProfile as the single public API
+
+After implementation, update the UI to call:
+
+import { analyzeAimProfile } from "@/engine";
+
+The UI should render returned values and explanations, not recalculate them.
+```
