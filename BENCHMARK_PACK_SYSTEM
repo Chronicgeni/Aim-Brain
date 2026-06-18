@@ -1,0 +1,706 @@
+# Deprecated / Superseded Notice
+
+This older benchmark-pack document is superseded by the source-first benchmark system.
+
+Read these instead:
+
+- `docs/benchmark_sources/BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/benchmark_sources/BENCHMARK_SOURCE_IMPLEMENTATION_FLOW.md`
+- `docs/benchmark_sources/CODEX_TASKS_BENCHMARK_SOURCE_SYSTEM.md`
+- `docs/DECISIONS_ADDENDUM_004_BENCHMARK_SOURCE_SYSTEM.md`
+
+The useful idea from this file is that the engine needs a validated internal benchmark definition. The flawed idea is treating Aim Brain-specific packs as the main way benchmarks are obtained.
+
+---
+
+# Benchmark Pack System for Aim Brain Engine
+
+## Purpose
+
+The Aim Brain Engine must not be hardcoded around Voltaic only.
+
+The product should be built as a universal aim-training progress engine where Voltaic, Viscose, and future benchmark systems are added as separate benchmark packs.
+
+The core idea is:
+
+```txt
+Aim Brain Engine = universal analysis logic
+Benchmark Packs = benchmark-specific rules and data
+```
+
+This lets the app support many different benchmarks without rewriting the whole engine every time.
+
+---
+
+## Core Principle
+
+The UI should not care whether the user is viewing Voltaic, Viscose, or another benchmark.
+
+The UI should ask the engine for an analysis result.
+
+The engine should ask the active benchmark pack for benchmark-specific information.
+
+```txt
+User scores
+→ Aim Brain Engine
+→ Active Benchmark Pack
+→ Analysis result
+→ UI display
+```
+
+The engine stays stable. The benchmark packs can grow over time.
+
+---
+
+## Why Benchmark Packs Are Needed
+
+Different aim benchmarks may use different:
+
+- Scenario lists
+- Rank names
+- Rank thresholds
+- Categories
+- Difficulty levels
+- Supported platforms
+- Scoring systems
+- Benchmark versions
+- Progress rules
+
+For example, Voltaic and Viscose should not be forced into the exact same rank or category structure.
+
+The app should support each benchmark in its native form while still allowing universal aim analysis across all benchmarks.
+
+---
+
+## Universal Engine vs Benchmark Pack
+
+### Universal Aim Brain Engine
+
+The universal engine handles logic that applies to all aim training:
+
+- Raw score runs
+- Personal bests
+- Latest scores
+- Last-5 and last-10 averages
+- All-time averages
+- Consistency
+- Volatility
+- Trends
+- Plateau detection
+- Category strength
+- Weakness detection
+- Neglected category detection
+- Training recommendations
+- Coach summaries
+- Setup tracking
+- Progress over time
+
+This logic should not be Voltaic-specific.
+
+### Benchmark Pack
+
+A benchmark pack provides the data and rules for one benchmark system.
+
+Each pack should define:
+
+- Benchmark ID
+- Benchmark name
+- Version
+- Supported platforms
+- Scenario list
+- Native categories
+- Universal category mapping
+- Rank names
+- Rank order
+- Score thresholds
+- Scoring direction
+- Difficulty levels
+- Metadata
+- Data source notes
+
+Examples:
+
+```txt
+voltaic
+viscose
+custom
+ra
+aimerz
+```
+
+Voltaic should be just one benchmark pack, not the engine itself.
+
+---
+
+## Recommended Folder Structure
+
+```txt
+src/
+  engine/
+    core/
+      analyzeAimProfile.ts
+      scoreStats.ts
+      trendAnalysis.ts
+      consistency.ts
+      weaknessDetection.ts
+      trainingRecommendations.ts
+      coachSummary.ts
+
+    benchmarks/
+      shared/
+        BenchmarkPack.ts
+        BenchmarkScenario.ts
+        BenchmarkRank.ts
+        BenchmarkThreshold.ts
+        BenchmarkAdapter.ts
+        universalCategories.ts
+        rankNormalization.ts
+
+      voltaic/
+        index.ts
+        voltaicPack.ts
+        voltaicScenarios.ts
+        voltaicRanks.ts
+        voltaicThresholds.ts
+        voltaicCategoryMap.ts
+
+      viscose/
+        index.ts
+        viscosePack.ts
+        viscoseScenarios.ts
+        viscoseRanks.ts
+        viscoseThresholds.ts
+        viscoseCategoryMap.ts
+
+      custom/
+        index.ts
+        customPackBuilder.ts
+```
+
+The frontend should import from the engine, not directly from random benchmark files.
+
+Example:
+
+```ts
+import { analyzeAimProfile } from "@/engine";
+import { voltaicPack } from "@/engine/benchmarks/voltaic";
+import { viscosePack } from "@/engine/benchmarks/viscose";
+```
+
+---
+
+## Benchmark Pack Type
+
+Each benchmark pack should follow a strict TypeScript interface.
+
+```ts
+export type BenchmarkId = "voltaic" | "viscose" | "custom" | string;
+
+export type PlatformId = "aimlabs" | "kovaaks" | "other";
+
+export type ScoringDirection = "higher-is-better" | "lower-is-better";
+
+export type UniversalAimCategory =
+  | "static-clicking"
+  | "dynamic-clicking"
+  | "smooth-tracking"
+  | "reactive-tracking"
+  | "speed-switching"
+  | "evasive-switching"
+  | "target-switching"
+  | "precision"
+  | "other"
+  | "hybrid";
+
+export type BenchmarkPack = {
+  id: BenchmarkId;
+  name: string;
+  version: string;
+
+  supportedPlatforms: PlatformId[];
+  scoringDirection: ScoringDirection;
+
+  ranks: BenchmarkRank[];
+  categories: BenchmarkCategory[];
+  scenarios: BenchmarkScenario[];
+  thresholds: BenchmarkThreshold[];
+
+  metadata: {
+    sourceName?: string;
+    sourceUrl?: string;
+    lastUpdated?: string;
+    notes?: string;
+    isOfficialData?: boolean;
+  };
+};
+```
+
+---
+
+## Rank Definition
+
+Each benchmark should define its own rank system.
+
+```ts
+export type BenchmarkRank = {
+  id: string;
+  name: string;
+  order: number;
+  color?: string;
+  normalizedStart?: number;
+  normalizedEnd?: number;
+};
+```
+
+Example:
+
+```ts
+{
+  id: "diamond",
+  name: "Diamond",
+  order: 7,
+  normalizedStart: 55,
+  normalizedEnd: 65
+}
+```
+
+The `normalizedStart` and `normalizedEnd` fields are used for cross-benchmark comparison.
+
+This avoids pretending that one benchmark's rank is exactly equal to another benchmark's rank.
+
+---
+
+## Scenario Definition
+
+Each benchmark scenario should include both its native benchmark category and the universal Aim Brain category.
+
+```ts
+export type BenchmarkScenario = {
+  id: string;
+  benchmarkId: BenchmarkId;
+  name: string;
+  aliases?: string[];
+
+  platform: PlatformId;
+  nativeCategory: string;
+  universalCategory: UniversalAimCategory;
+
+  difficulty?: string;
+  subcategory?: string;
+
+  hasThresholdData: boolean;
+
+  links?: {
+    play?: string;
+    search?: string;
+    vod?: string;
+  };
+
+  metadata?: {
+    sourceName?: string;
+    sourceUrl?: string;
+    notes?: string;
+  };
+};
+```
+
+Example:
+
+```ts
+{
+  id: "viscose-reactive-example",
+  benchmarkId: "viscose",
+  name: "Example Viscose Scenario",
+  aliases: ["Example Viscose Scenario Alt Name"],
+  platform: "kovaaks",
+  nativeCategory: "Viscose Native Category",
+  universalCategory: "reactive-tracking",
+  difficulty: "intermediate",
+  hasThresholdData: true
+}
+```
+
+---
+
+## Threshold Definition
+
+Thresholds are what allow the engine to convert scores into ranks.
+
+```ts
+export type BenchmarkThreshold = {
+  benchmarkId: BenchmarkId;
+  scenarioId: string;
+  rankId: string;
+  score: number;
+};
+```
+
+Example:
+
+```ts
+{
+  benchmarkId: "voltaic",
+  scenarioId: "vt-pasu-intermediate",
+  rankId: "diamond",
+  score: 850
+}
+```
+
+If a scenario has no threshold data, the engine must not invent a rank.
+
+The correct fallback is:
+
+```txt
+Progress only. No benchmark threshold data available.
+```
+
+---
+
+## How Score Analysis Should Work
+
+The engine receives raw score runs.
+
+```ts
+export type ScoreRun = {
+  id: string;
+  date: string;
+  scenarioName: string;
+  score: number;
+  platform: PlatformId;
+  benchmarkId?: BenchmarkId;
+  setupId?: string;
+};
+```
+
+Then the engine should:
+
+1. Normalize the scenario name.
+2. Match the score to a benchmark scenario.
+3. Look up threshold data if available.
+4. Calculate rank progress if thresholds exist.
+5. Calculate progress-only stats if thresholds do not exist.
+6. Return a clean analysis object for the UI.
+
+---
+
+## Scenario Matching
+
+Scenario matching should support:
+
+- Exact scenario names
+- Aliases
+- Platform-specific names
+- Normalized names
+- Manual correction by the user
+
+Example:
+
+```txt
+"VT Pasu Intermediate"
+"Voltaic Pasu Intermediate"
+"Pasu Int"
+```
+
+These may refer to the same scenario depending on the benchmark pack.
+
+Each pack should include aliases where possible.
+
+The app should also allow the user to manually fix a scenario match. Once fixed, the correction should be saved.
+
+---
+
+## Native Categories vs Universal Categories
+
+Each benchmark may organize scenarios differently.
+
+So every scenario should have:
+
+```txt
+nativeCategory = how the benchmark itself defines it
+universalCategory = how Aim Brain compares it across benchmarks
+```
+
+Example:
+
+```ts
+{
+  nativeCategory: "Viscose-specific category name",
+  universalCategory: "reactive-tracking"
+}
+```
+
+This gives the app two useful views.
+
+### Benchmark View
+
+Shows progress exactly as the benchmark intended.
+
+Example:
+
+```txt
+Viscose Category A
+Viscose Category B
+Viscose Category C
+```
+
+### Universal Aim View
+
+Shows general aim skill across all benchmarks.
+
+Example:
+
+```txt
+Static Clicking
+Dynamic Clicking
+Reactive Tracking
+Smooth Tracking
+Switching
+```
+
+This is how the app can say:
+
+```txt
+Your reactive tracking is weak across both Voltaic and Viscose.
+```
+
+---
+
+## Rank Normalization
+
+Ranks from different benchmarks should not be treated as identical.
+
+The app should convert benchmark-specific rank progress into a normalized progress score from 0 to 100.
+
+Example:
+
+```txt
+Voltaic Diamond, 70% to Jade → 62/100
+Viscose Rank X, 45% to next rank → 58/100
+```
+
+This allows cross-benchmark comparison without lying about rank equivalence.
+
+The UI can show both:
+
+```txt
+Voltaic: Diamond, 70% to Jade
+Viscose: Rank X, 45% to next rank
+Universal Aim Score: 60/100
+```
+
+Native rank stays visible. Normalized score is used for comparison.
+
+---
+
+## Required Engine Behavior
+
+The engine should return honest output.
+
+### If threshold data exists
+
+Return:
+
+```ts
+{
+  hasThresholdData: true,
+  currentRank: "Diamond",
+  nextRank: "Jade",
+  progressToNextRank: 72,
+  normalizedProgress: 62
+}
+```
+
+### If threshold data is missing
+
+Return:
+
+```ts
+{
+  hasThresholdData: false,
+  currentRank: null,
+  nextRank: null,
+  progressToNextRank: null,
+  normalizedProgress: null,
+  note: "Progress only. No benchmark threshold data available."
+}
+```
+
+No fake rank conversion.
+
+No guessed thresholds.
+
+No pretending different benchmark ranks are equal.
+
+---
+
+## UI Modes
+
+The app should support at least three analysis modes.
+
+### 1. Benchmark Mode
+
+Focuses on one benchmark pack.
+
+Examples:
+
+```txt
+Voltaic Mode
+Viscose Mode
+Custom Benchmark Mode
+```
+
+Shows:
+
+- Native ranks
+- Native categories
+- Benchmark-specific scenarios
+- Benchmark-specific progress
+- Benchmark-specific weaknesses
+
+### 2. Universal Aim Mode
+
+Combines all supported benchmark data.
+
+Shows:
+
+- Universal aim categories
+- Cross-benchmark strengths
+- Cross-benchmark weaknesses
+- General aim trend
+- General training recommendation
+
+### 3. Comparison Mode
+
+Compares benchmark packs without mixing their ranks incorrectly.
+
+Shows:
+
+- Voltaic normalized progress
+- Viscose normalized progress
+- Benchmark completion
+- Shared weakness patterns
+- Differences between benchmark systems
+
+---
+
+## Adding Viscose
+
+Viscose should be added as a separate benchmark pack.
+
+Required files:
+
+```txt
+src/engine/benchmarks/viscose/
+  index.ts
+  viscosePack.ts
+  viscoseScenarios.ts
+  viscoseRanks.ts
+  viscoseThresholds.ts
+  viscoseCategoryMap.ts
+```
+
+The Viscose pack should define:
+
+- Viscose benchmark ID
+- Viscose rank names
+- Viscose rank order
+- Viscose scenarios
+- Viscose categories
+- Viscose thresholds
+- Viscose platform support
+- Viscose benchmark version
+- Source notes for where the data came from
+
+If some Viscose data is missing, the pack should still exist but mark those scenarios as progress-only.
+
+---
+
+## Custom Benchmark Packs
+
+Later, the app should support user-created custom benchmark packs.
+
+Custom packs should allow users to define:
+
+- Custom benchmark name
+- Custom categories
+- Custom scenarios
+- Optional score thresholds
+- Optional rank system
+- Universal category mapping
+
+This makes the app future-proof.
+
+A custom benchmark without thresholds still works as a progress tracker.
+
+A custom benchmark with thresholds works as a rank tracker.
+
+---
+
+## Codex Build Instructions
+
+Use this instruction when asking Codex to build the system:
+
+```txt
+Build the Aim Brain Engine as a benchmark-agnostic TypeScript logic layer.
+
+Do not hardcode Voltaic into the core engine.
+
+Create a benchmark pack system where Voltaic, Viscose, Custom, and future benchmarks are separate packs.
+
+The core engine should handle score stats, trends, consistency, weakness detection, recommendations, and coach summaries.
+
+Benchmark packs should provide scenario lists, aliases, native categories, universal category mappings, rank names, score thresholds, platform support, benchmark version metadata, and data source notes.
+
+Add a shared BenchmarkPack interface and make each benchmark pack follow it.
+
+Support missing threshold data with a progress-only fallback.
+
+Never invent rank conversion for scenarios without threshold data.
+
+Add UI support for Benchmark Mode, Universal Aim Mode, and Comparison Mode.
+
+Add tests with sample Voltaic and Viscose data to confirm that the same engine can analyze both benchmark packs.
+```
+
+---
+
+## Product Direction
+
+This architecture changes the app from:
+
+```txt
+Voltaic tracker
+```
+
+into:
+
+```txt
+Universal aim-training progress app
+```
+
+Voltaic can still be the first and most polished benchmark.
+
+Viscose can be added as the next benchmark pack.
+
+Future benchmarks can be added without rebuilding the whole app.
+
+The Aim Brain Engine becomes the real product core.
+
+Benchmark packs become plug-ins that teach the engine how to understand each benchmark.
+
+---
+
+## Simplicity Rule
+
+This benchmark pack system must stay easy to extend.
+
+Adding a new benchmark should mostly mean adding a `pack.json`, optional adapter, and tests.
+
+For the practical workflow, read:
+
+```text
+docs/benchmark_packs/BENCHMARK_PACK_AUTHORING_GUIDE.md
+docs/benchmark_packs/SMART_BENCHMARK_PACK_IMPLEMENTATION_PLAN.md
+docs/benchmark_packs/templates/benchmark-pack.template.json
+```
+
