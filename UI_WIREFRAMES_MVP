@@ -1,0 +1,301 @@
+# MVP UI Wireframes
+
+The Aim Brain UI should feel like a coach dashboard, not a spreadsheet.
+
+The UI does not think.
+
+The UI displays engine output.
+
+---
+
+## Main Navigation
+
+MVP navigation:
+
+```text
+Home
+Import
+Review Queue
+Runs
+Benchmark Sources
+Settings
+```
+
+Do not add too many tabs early.
+
+---
+
+## Home Screen
+
+Purpose:
+- show what matters today
+
+Layout:
+
+```text
+[Header]
+Aim Brain
+Current data source: Aimlabs / KovaaK's / Sample
+Active benchmark: Voltaic / Viscose / Progress-only
+
+[Coach Card]
+Main message:
+"Your reactive tracking is improving, but consistency is unstable."
+
+Next action:
+"Run 3 reactive tracking scenarios, stop after 2 poor runs."
+
+Evidence:
+- Last 10 average: +4.2%
+- Volatility: high
+- Runs this week: 23
+
+[Import Status Card]
+Last import: Today 14:32
+Imported: 42
+Skipped duplicates: 8
+Needs review: 3
+
+[Weakness Cards]
+1. Reactive Tracking — weak / unstable
+2. Dynamic Clicking — stable but undertrained
+3. Smooth Tracking — improving
+
+[Recent Progress]
+Small trend list:
+- VT Pasu: PB +2.1%
+- Smoothbot: last-10 up
+- Unknown scenario: needs match
+
+[Data Health]
+Warnings:
+- 3 runs need review
+- 5 scenarios have no threshold data
+```
+
+Rules:
+- Home must always show one best next action.
+- Home should never become a giant table.
+- If data is missing, Home should guide setup/import.
+
+---
+
+## Import Screen
+
+Purpose:
+- connect/import score sources safely
+
+Layout:
+
+```text
+[Import Sources]
+Aimlabs
+- status: not connected / connected / needs sample
+- action: choose folder / import file / run import
+
+KovaaK's
+- status: not connected / connected / needs sample
+- action: choose folder / import file / run import
+
+Sample Fixture
+- action: import demo data
+
+[Recent Import Batches]
+Date | Source | Imported | Skipped | Review | Status
+
+[Import Report]
+Selected batch:
+- imported runs
+- skipped duplicates
+- review items
+- errors
+```
+
+Rules:
+- never modify source files
+- show what was imported
+- show what was skipped
+- show what needs review
+
+---
+
+## Review Queue Screen
+
+Purpose:
+- fix uncertain data
+
+Layout:
+
+```text
+[Queue Summary]
+Pending: 7
+Resolved today: 3
+
+[Review Item]
+Detected scenario: "Pasu Int"
+Platform: KovaaK's
+Score: 850
+Date: unknown
+
+Reason:
+"Scenario matched multiple possible definitions."
+
+Suggested matches:
+1. VT Pasu Intermediate
+2. Pasu Reloaded
+3. Create new progress-only scenario
+
+Actions:
+[Accept match] [Choose different] [Ignore run] [Save rule]
+```
+
+Rules:
+- manual corrections create scenario_match_overrides
+- review queue should be calm and easy
+- never force fake confidence
+
+---
+
+## Runs Screen
+
+Purpose:
+- inspect raw performance history
+
+Layout:
+
+```text
+Filters:
+platform | benchmark | scenario | date range | matched/unmatched
+
+Table:
+Date | Platform | Scenario | Score | Match | Benchmark | Source
+
+Side panel:
+selected run raw details
+source file
+import batch
+match confidence
+```
+
+Rules:
+- table is allowed here
+- not the main Home experience
+- raw payload should be viewable for debugging
+
+---
+
+## Benchmark Sources Screen
+
+Purpose:
+- manage benchmark definitions
+
+Layout:
+
+```text
+[Installed Definitions]
+Name | Source | Version | Status | Enabled
+
+Voltaic | Built-in | 2026.x | Valid | Enabled
+Viscose | Built-in | 2026.x | Valid | Enabled
+My Pack | Local CSV | 1.0 | Warning | Disabled
+
+[Actions]
+Import JSON
+Import CSV
+Add URL later
+Validate again
+View source details
+Disable
+Remove user-installed
+```
+
+Preview modal:
+
+```text
+Benchmark name
+Source type
+Scenario count
+Rank count
+Threshold count
+Universal category coverage
+Warnings
+Errors
+[Install] [Cancel]
+```
+
+Rules:
+- built-in definitions can be disabled, not removed
+- user-installed definitions can be removed
+- errors block install
+- warnings require confirmation
+
+---
+
+## Settings Screen
+
+Purpose:
+- app-level settings
+
+Sections:
+
+```text
+Data folders
+Import behavior
+Database backup
+Appearance
+Privacy
+Developer/debug
+```
+
+MVP settings:
+- choose app data folder only if needed
+- show database location
+- export diagnostics
+- create backup
+- reset sample data
+- theme later
+
+---
+
+## Empty States
+
+Every empty state should tell the user what to do.
+
+Example Home empty state:
+
+```text
+No score data yet.
+Import Aimlabs/KovaaK's data or load sample data to test Aim Brain.
+[Import Data] [Load Sample Data]
+```
+
+Example Benchmark Source empty state:
+
+```text
+No benchmark definitions enabled.
+Enable a built-in definition or import a benchmark source.
+```
+
+---
+
+## Visual Direction
+
+- dark app-like interface
+- clean cards
+- strong spacing
+- subtle category colors
+- not spreadsheet-like
+- not overloaded
+- coach message first, numbers second
+
+---
+
+## UI Anti-Patterns
+
+Do not:
+- make Home a spreadsheet
+- show every metric at once
+- hide import errors
+- pretend unmatched data is fine
+- hardcode Voltaic screens
+- put analysis logic inside React components
