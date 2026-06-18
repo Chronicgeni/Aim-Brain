@@ -1,0 +1,183 @@
+# MVP Testing Checklist
+
+Aim Brain must be testable from the start.
+
+Every core feature should have tests before polish.
+
+---
+
+## Engine Tests
+
+Test:
+
+```text
+PB calculation
+latest score
+last-5 average
+last-10 average
+all-time average
+trend direction
+consistency score
+volatility score
+weakness detection
+neglected category detection
+progress-only fallback
+```
+
+Required cases:
+- one run
+- no runs
+- exactly 5 runs
+- exactly 10 runs
+- more than 10 runs
+- improving trend
+- declining trend
+- inconsistent scores
+- missing threshold data
+
+---
+
+## Scenario Matching Tests
+
+Test:
+
+```text
+exact match
+case-insensitive match
+normalized punctuation match
+alias match
+platform-specific match
+manual override match
+ambiguous match
+unknown scenario
+```
+
+Expected:
+- ambiguous goes to review
+- unknown goes to review/progress-only depending source
+- manual override wins
+
+---
+
+## Benchmark Definition Tests
+
+Test:
+
+```text
+valid definition passes
+missing id fails
+duplicate scenario IDs fail
+duplicate rank IDs fail
+threshold references missing scenario fails
+threshold references missing rank fails
+invalid universal category fails
+missing thresholds warn but do not fail
+source metadata stored
+```
+
+---
+
+## Source Adapter Tests
+
+MVP:
+
+```text
+built-in definition loads
+local JSON imports
+invalid local JSON fails clearly
+```
+
+MVP+:
+
+```text
+local CSV imports
+CSV missing optional data warns
+CSV missing required data fails
+```
+
+Later:
+
+```text
+GitHub raw JSON import
+public Google Sheet CSV import
+network failure handling
+```
+
+---
+
+## Import Pipeline Tests
+
+Test:
+
+```text
+import sample file
+import same file twice
+import malformed file
+import file with unknown scenario
+import file with missing timestamp
+import file with duplicate rows
+import crash/rollback simulation if possible
+```
+
+Expected:
+- no duplicates on second import
+- bad rows go to review
+- batch report is correct
+- raw payload is preserved
+- transaction behavior is safe
+
+---
+
+## Database Tests
+
+Test:
+
+```text
+migrations apply from empty DB
+migrations are repeat-safe where applicable
+foreign keys work
+indexes exist
+backup created before risky migration
+```
+
+---
+
+## UI Model Tests
+
+Test UI-neutral models:
+
+```text
+Home summary model
+Import report model
+Review queue item model
+Benchmark source preview model
+Settings benchmark definition list model
+```
+
+Do not test visual polish first.
+
+Test that the UI model receives engine output instead of calculating it inside components.
+
+---
+
+## End-to-End Smoke Test Later
+
+After MVP foundation:
+
+```text
+launch app
+load sample data
+see Home summary
+open Import report
+open Review Queue
+resolve scenario match
+see Home update
+```
+
+---
+
+## Codex Rule
+
+If Codex adds a core feature without tests, it must explain why.
+
+Prefer small tested steps over big untested code drops.
