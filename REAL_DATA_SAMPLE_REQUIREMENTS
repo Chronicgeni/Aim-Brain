@@ -1,0 +1,125 @@
+# Real Data Sample Requirements
+
+Some implementation details cannot be finalized until real data is inspected.
+
+This file defines what samples are needed.
+
+---
+
+## Aimlabs Sample Needed
+
+Need one redacted sample from Aimlabs.
+
+Useful sources:
+- local task data
+- JSON export
+- CSV export
+- any file Aimlabs stores recent results in
+
+We need to inspect:
+
+```text
+scenario/task name
+score
+date/time
+accuracy
+duration
+mode/task ID if available
+playlist/benchmark name if available
+extra metrics
+file update behavior
+folder structure
+```
+
+Redact:
+- username
+- account ID
+- private paths if desired
+
+Keep:
+- field names
+- sample values
+- structure
+
+---
+
+## KovaaK's Sample Needed
+
+Need one redacted sample from KovaaK's.
+
+Useful sources:
+- stats CSV
+- local result file
+- playlist result file
+- benchmark run export if available
+
+We need:
+
+```text
+scenario name
+score
+date/time
+accuracy
+kills/hits/misses if available
+playlist/benchmark info if available
+file format
+folder structure
+```
+
+---
+
+## Benchmark Source Samples Needed
+
+Need source examples for:
+
+```text
+Voltaic thresholds
+Viscose thresholds
+one generic community sheet if available
+```
+
+Acceptable formats:
+- public Google Sheet CSV
+- exported CSV
+- copied threshold table
+- GitHub JSON/CSV
+- official docs page manually converted later
+
+Need metadata:
+- source name
+- source URL if public
+- official/community/unknown
+- version/date
+- notes about permission/trust
+
+---
+
+## Development Without Real Samples
+
+If samples are missing, Codex should:
+
+- build interfaces
+- build fixture importers
+- build validators
+- build engine
+- avoid claiming real parser completeness
+
+Do not guess real file formats.
+
+---
+
+## Sample Fixture Policy
+
+Synthetic fixtures should be clearly marked:
+
+```text
+tests/fixtures/synthetic/
+```
+
+Real redacted fixtures should be marked:
+
+```text
+tests/fixtures/redacted/
+```
+
+Do not commit private personal data.
