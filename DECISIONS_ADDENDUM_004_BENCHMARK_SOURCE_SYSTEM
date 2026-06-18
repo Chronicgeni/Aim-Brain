@@ -1,0 +1,75 @@
+# Decisions Addendum 004 — Benchmark Source System
+
+## Decision 023: Replace Pack-First Thinking With Source-First Thinking
+
+Decision:
+- The earlier benchmark pack system is incomplete/flawed if treated as the user-facing source of benchmark data.
+- Aim Brain should use a benchmark source system.
+
+Correct model:
+
+```text
+External benchmark source
+↓
+Source adapter
+↓
+Normalized benchmark definition
+↓
+Validation
+↓
+Installed local definition
+↓
+Aim Brain Engine
+```
+
+Status:
+- locked
+
+---
+
+## Decision 024: Benchmark Definitions Should Come From Normal Sources
+
+Decision:
+- Aim Brain should support benchmark definitions from common external formats/sources:
+  - built-in curated data
+  - local JSON
+  - local CSV
+  - GitHub raw JSON/CSV later
+  - public Google Sheet CSV later
+  - custom-created definitions later
+
+Reason:
+- Benchmarks already exist in external communities and tools.
+- Aim Brain should not force everything to originate as an Aim Brain-specific pack.
+
+Status:
+- locked
+
+---
+
+## Decision 025: Internal Normalized Definition Is Still Needed
+
+Decision:
+- Aim Brain still needs an internal validated format.
+- This internal format can replace or refine the old BenchmarkPack type.
+
+Reason:
+- The engine needs stable structured data.
+- Source adapters can handle messy external formats.
+
+Status:
+- locked
+
+---
+
+## Decision 026: Keep Score Import Separate From Definition Import
+
+Decision:
+- Aimlabs/KovaaK's score files provide user run data.
+- Benchmark sources provide benchmark definitions.
+
+Reason:
+- Trainer result files usually do not include complete benchmark threshold/rank systems.
+
+Status:
+- locked
